@@ -198,13 +198,13 @@ def blacklist(block, ip_list):
         data = ip_list_to_data(ip_list)
         print('block request data: {}'.format(data))
         error_list = []
-        error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
+        #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
         return error_list["error_list"]
     #unblock
     data = ip_list_to_data(ip_list)
     print('unblock request data: {}'.format(data))
     error_list = []
-    error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
+    #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
     return error_list["error_list"]
 
 
@@ -340,7 +340,7 @@ def show_list(update, context):
                     list_to_show.append([ip, ban_date, unban_date, name])
             if context.args[0].lower() in ['sw', 'raw']:
                 #list_to_show = requests.get(creds.SW_blacklist_url, headers=headers).json #TODO
-                list_to_show = {"list" : ["1.4.8.8", "14.88.14.88", "228.228.228.228", "22.8.22.8"]}
+                list_to_show = {"list" : ["1.2.3.4", "12.34.56.78", "123.123.123.123", "12.3.12.3"]}
                 list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
         elif not context.args:
             #timed
