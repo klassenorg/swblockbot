@@ -392,7 +392,10 @@ def grep_ip(update, context):
     ip = context.args[0]
     subprocess.call(['sh', creds.grep_path, ip])
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
-    context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+    if not os.stat(send_filename).st_size == 0:
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+    else: 
+        updater.bot.send_message(update.effective_chat.id, 'Пока данных нет. Бот собирает данные каждые 10 минут, попробуй подождать немного.')
     subprocess.call(['rm', send_filename])
 
 bot_check_active = True
@@ -476,7 +479,7 @@ def main():
     dp = updater.dispatcher
     prepareDB()
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
-    updater.job_queue.run_repeating(find_bots, interval=3600, first=0)
+    updater.job_queue.run_repeating(find_bots, interval=600, first=0)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
