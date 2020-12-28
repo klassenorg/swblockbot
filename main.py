@@ -147,6 +147,9 @@ def start(update, context):
     contact_keyboard = KeyboardButton(text="Зарегистрироваться", request_contact=True)
     reply_keyboard = [[contact_keyboard]]
     if not is_user(user_id):
+        if update.effective_chat.id == creds.L2_chat_id:
+            updater.bot.send_message(update.effective_chat.id, "Данную команду нужно отправить боту в личные сообщения."
+            return
         updater.bot.send_message(update.effective_chat.id, "Необходимо пройти процесс регистрации, нажми кнопку 'Зарегестрироваться' чтобы предоставить свои данные.",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         logger.info("Start issued for id {}, name: {}".format(update.effective_user.id, update.message.from_user.full_name))
@@ -184,6 +187,7 @@ def accept_auth(update, context):
     auth_user(user_id, user_full_name)
     logger.info("Auth accepted by id {}".format(update.effective_user.id))
     context.bot.send_message(user_id, text="Ваша учётная запись подтверждена, можете пользоваться ботом.")
+    context.bot.send_message(635651868, text="Пользователь авторизован",remove_keyboard=True)
 
 def decline_auth(update, context):
     logger.info("Auth declined by id {}".format(update.effective_user.id))
