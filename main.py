@@ -18,6 +18,7 @@ import os
 import sys
 from tabulate import tabulate
 from collections import defaultdict
+import help_txt
 
 
 def checkIP(ip):
@@ -86,6 +87,9 @@ def prepareDB():
     c.execute('''CREATE TABLE IF NOT EXISTS USERS
                 (ID INT NOT NULL, FULL_NAME TEXT NOT NULL, ADMIN INT)''')
 
+    c.execute('''CREATE TABLE IF NOT EXISTS WHITELIST
+            (IP text NOT NULL, WL_DATE timestamp NOT NULL, WL_BY text)''')
+
 
 
 logging.basicConfig(filename=creds.logdir,
@@ -135,7 +139,7 @@ def build_menu(buttons,
     return menu
 
 def help(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=creds.help_text)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=help_txt.help_text)
     logger.info("Help issued for id {}, name: {}".format(update.effective_user.id, update.message.from_user.full_name))
 
 def start(update, context):
@@ -382,24 +386,23 @@ def grep_ip(update, context):
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один ip адрес.')
         return
     ip = context.args[0]
-    subprocess.call(['sh', '/home/klassen/SWBlockBot/grep_ip_from_last_10_minutes.sh', ip])
+    subprocess.call(['sh', creds.grep_path, ip])
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
     context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     subprocess.call(['rm', send_filename])
 
-bot_check_active = True         
+bot_check_active = True
 
+counter = 2
 
 def find_bots(context):
-    if bot_check_active:
+    subprocess.call(['rm', creds.accesslogpath])
+    subprocess.call(['sh', creds.get_access_log_path])
+    global counter
+    if bot_check_active and counter == 2:
         list_to_show = []
-        subprocess.call(['rm', '/app/jet/scripts/klassen/psaccesslog.txt'])
-        subprocess.call(['sh', '/home/klassen/SWBlockBot/get_access_log_for_10min.sh'])
-
-
-        with open(r'/app/jet/scripts/klassen/psaccesslog.txt') as f:
+        with open(creds.accesslogpath) as f:
             content = f.readlines()
-
         ip_rt = defaultdict(list)
         for line in content:
             ip = line.split(' ', 1)[0]
@@ -413,11 +416,13 @@ def find_bots(context):
         list_headers=['IP', 'COUNT', 'Avg.RT ms']
         for ip in sorted(ip_rt, key=lambda ip: len(ip_rt[ip]), reverse=True):
             if ip[:3] != '10.' and (len(ip_rt[ip]) > 600 or sum(ip_rt[ip])/len(ip_rt[ip]) > 10000):
-                print("{}\t{}\t{}".format(ip, len(ip_rt[ip]), sum(ip_rt[ip])/len(ip_rt[ip])))
                 list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip]))])
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
             updater.bot.send_message(creds.L2_chat_id, 'Внимание, возможные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+            counter = 0
+    else:
+        counter += 1
 
 
 def whois(update, context):
