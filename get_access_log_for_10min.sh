@@ -6,6 +6,5 @@ done
 wait
 
 for i in {01..22};
-do cat /app/jet/scripts/klassen/ps$i-accesslog.txt >> psaccesslog.txt
-rm -rf /app/jet/scripts/klassen/ps$i-accesslog.txt
+do echo ***PS$i-PROD*** >> /app/jet/scripts/klassen/psaccesslog.txt ; cat /app/jet/scripts/klassen/ps$i-accesslog.txt >> /app/jet/scripts/klassen/psaccesslog.txt ; rm -rf /app/jet/scripts/klassen/ps$i-accesslog.txt
 done
