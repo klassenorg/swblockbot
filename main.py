@@ -148,7 +148,7 @@ def start(update, context):
     reply_keyboard = [[contact_keyboard]]
     if not is_user(user_id):
         if update.effective_chat.id == creds.L2_chat_id:
-            updater.bot.send_message(update.effective_chat.id, "Данную команду нужно отправить боту в личные сообщения."
+            updater.bot.send_message(update.effective_chat.id, "Данную команду нужно отправить боту в личные сообщения.")
             return
         updater.bot.send_message(update.effective_chat.id, "Необходимо пройти процесс регистрации, нажми кнопку 'Зарегестрироваться' чтобы предоставить свои данные.",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -424,7 +424,7 @@ def find_bots(context):
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
             updater.bot.send_message(creds.L2_chat_id, 'Внимание, возможные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
-            counter = 0
+        counter = 0
     else:
         counter += 1
 
