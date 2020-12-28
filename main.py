@@ -412,7 +412,7 @@ def find_bots(context):
         for ip in sorted(ip_rt, key=lambda ip: len(ip_rt[ip]), reverse=True):
             if ip[:3] != '10.' and (len(ip_rt[ip]) > 600 or sum(ip_rt[ip])/len(ip_rt[ip]) > 10000):
                 print("{}\t{}\t{}".format(ip, len(ip_rt[ip]), sum(ip_rt[ip])/len(ip_rt[ip])))
-                list_to_show.append(ip, len(ip_rt[ip]), sum(ip_rt[ip])/len(ip_rt[ip]))
+                list_to_show.append([ip, len(ip_rt[ip]), sum(ip_rt[ip])/len(ip_rt[ip])])
         output = tabulate(list_to_show, headers=list_headers)
         updater.bot.send_message(creds.L2_chat_id, '```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 

@@ -1,1 +1,3 @@
 python_telegram_bot-12.8-py2.py3-none-any.whl
+emoji-country-flag
+tabulate
