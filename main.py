@@ -386,6 +386,7 @@ def grep_ip(update, context):
     subprocess.call(['sh', '/home/klassen/SWBlockBot/grep_ip_from_last_10_minutes.sh', ip])
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
     context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+    subprocess.call(['rm', send_filename])
 
 
 def find_bots(context):
@@ -475,6 +476,7 @@ def main():
     dp.add_handler(CommandHandler("list", show_list))
     dp.add_handler(CommandHandler("check", check))
     dp.add_handler(CommandHandler("whois", whois))
+    dp.add_handler(CommandHandler("grep", grep_ip))
     dp.add_handler(CommandHandler("msglen", msglen))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
