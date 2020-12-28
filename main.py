@@ -53,7 +53,7 @@ def restricted(func):
             logger.info("Unauthorized access denied for id {}, name: {}.".format(update.effective_user.id, update.message.from_user.full_name))
             return
         if update.effective_chat.id != creds.L2_chat_id:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Команду можно использовать только в чате L2-SW Block API Bot")
+            context.bot.send_message(chat_id=update.effective_chat.id, text="Команду можно использовать только в чате MVideo ATG/StormWall BOT")
             logger.info("Unauthorized access denied for id {}, name: {}, chat_id: {}".format(update.effective_user.id, update.message.from_user.full_name, update.effective_chat.id))
             return
         refresh_ip_list()
@@ -376,7 +376,6 @@ def checkAndUnban(context):
             updater.bot.send_message(creds.L2_chat_id, 'Разблокированы по истечении времени бана:\n{}'.format('\n'.join(unban_list)))
             logger.info()
 
-bot_check_active = True         
 
 def grep_ip(update, context):
     if not context.args or len(context.args) != 1 or not checkIP(context.args[0]):
@@ -387,6 +386,8 @@ def grep_ip(update, context):
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
     context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     subprocess.call(['rm', send_filename])
+
+bot_check_active = True         
 
 
 def find_bots(context):
@@ -416,7 +417,7 @@ def find_bots(context):
                 list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip]))])
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
-            updater.bot.send_message(creds.L2_chat_id, 'Внимание, возможные нарушители порядка:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+            updater.bot.send_message(creds.L2_chat_id, 'Внимание, возможные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
 
 def whois(update, context):
@@ -466,7 +467,7 @@ def main():
     dp = updater.dispatcher
     prepareDB()
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
-    updater.job_queue.run_repeating(find_bots, interval=600, first=0)
+    updater.job_queue.run_repeating(find_bots, interval=3600, first=0)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
