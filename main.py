@@ -318,7 +318,7 @@ def show_list(update, context):
     conn, c = initdb()
     data = c.execute("SELECT IP, \
  strftime('%d.%m.', BAN_DATE) || substr(strftime('%Y', BAN_DATE),3, 2) || strftime(' %H:%M', BAN_DATE), \
-  strftime('%d.%m.', UNBAN_DATE) || substr(strftime('%Y', UNBAN_DATE),3, 2) || strftime(' %H:%M', BAN_DATE), \
+  strftime('%d.%m.', UNBAN_DATE) || substr(strftime('%Y', UNBAN_DATE),3, 2) || strftime(' %H:%M', UNBAN_DATE), \
    BANNED_FOREVER, \
     BANNED_BY FROM BANS \
         ORDER BY UNBAN_DATE ASC").fetchall()
@@ -450,7 +450,7 @@ def check(update, context):
     elif context.args[0] == 'on':
         check_active = True 
         logger.info("Ban check enabled by id {}, name: {}".format(update.effective_user.id, update.message.from_user.full_name))
-        updater.bot.send_message(update.effective_chat.id, 'Автоматическое удаление отбывших срок из блок-листа включено каждые 5 минут.')
+        updater.bot.send_message(update.effective_chat.id, 'Автоматическое удаление из блок-листа по истечению времени блокировки включено каждые 5 минут.')
 
 
 
