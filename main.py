@@ -201,13 +201,13 @@ def blacklist(block, ip_list):
     if block:
         data = ip_list_to_data(ip_list)
         print('block request data: {}'.format(data))
-        error_list = []
+        error_list = { "error_list": [] }
         #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
         return error_list["error_list"]
     #unblock
     data = ip_list_to_data(ip_list)
     print('unblock request data: {}'.format(data))
-    error_list = []
+    error_list = { "error_list": [] }
     #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
     return error_list["error_list"]
 
