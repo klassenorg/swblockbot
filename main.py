@@ -386,11 +386,17 @@ def checkAndUnban(context):
 
 @run_async
 def grep_ip(update, context):
-    if not context.args or len(context.args) != 1 or not checkIP(context.args[0]):
+    if not context.args or len(context.args) not in [1, 2] or not checkIP(context.args[0]):
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один ip адрес.')
         return
     ip = context.args[0]
-    subprocess.call(['sh', creds.grep_path, ip])
+    if len(context.args) == 2:
+        if context.args[1] != 'short':
+            updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
+        else: 
+            subprocess.call(['sh', creds.grep_path_short, ip])
+    else:
+        subprocess.call(['sh', creds.grep_path, ip])
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
     if not os.stat(send_filename).st_size == 352:
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
