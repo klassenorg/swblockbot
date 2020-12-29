@@ -391,7 +391,7 @@ def grep_ip(update, context):
         return
     ip = context.args[0]
     if len(context.args) == 2:
-        if context.args[1] != 'short':
+        if context.args[1].lower() != 'short':
             updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
         else: 
             subprocess.call(['sh', creds.grep_path_short, ip])
