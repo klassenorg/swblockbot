@@ -426,10 +426,15 @@ def find_bots(context):
                 rt = float(rt.split('=')[1])
                 ip_rt[ip].append(int(rt*1000))
 
-        list_headers=['IP', 'COUNT', 'Avg.RT ms']
+        list_headers=['IP', 'COUNT', 'Avg.RT ms', 'Region']
         for ip in sorted(ip_rt, key=lambda ip: len(ip_rt[ip]), reverse=True):
             if ip[:3] != '10.' and len(ip_rt[ip]) > 900:
-                list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip]))])
+                data = requests.get('http://ipwhois.app/json/{}?objects=success,country_code'.format(ip)).json()
+                if data['success']:
+                    region = flag.flag(data['country_code'])
+                else:
+                    region = '\U0001F3F4'
+                list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip])), region])
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
             updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
