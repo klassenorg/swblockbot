@@ -422,11 +422,11 @@ def find_bots(context):
 
         list_headers=['IP', 'COUNT', 'Avg.RT ms']
         for ip in sorted(ip_rt, key=lambda ip: len(ip_rt[ip]), reverse=True):
-            if ip[:3] != '10.' and (len(ip_rt[ip]) > 600 or sum(ip_rt[ip])/len(ip_rt[ip]) > 10000):
+            if ip[:3] != '10.' and len(ip_rt[ip]) > 900:
                 list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip]))])
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
-            updater.bot.send_message(creds.L2_chat_id, 'Внимание, возможные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+            updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
         counter = 0
     else:
         counter += 1
