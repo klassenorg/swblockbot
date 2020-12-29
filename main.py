@@ -384,7 +384,7 @@ def checkAndUnban(context):
             updater.bot.send_message(creds.L2_chat_id, 'Разблокированы по истечении времени бана:\n{}'.format('\n'.join(unban_list)))
             logger.info()
 
-
+@run_async
 def grep_ip(update, context):
     if not context.args or len(context.args) != 1 or not checkIP(context.args[0]):
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один ip адрес.')
@@ -431,7 +431,7 @@ def find_bots(context):
     else:
         counter += 1
 
-
+@run_async
 def whois(update, context):
     if len(context.args) != 1: 
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один аргумент: IP или CIDR')
