@@ -432,6 +432,7 @@ def find_bots(context):
                 data = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
                 if data['success']:
                     region = flag.flag(data['country_code']) + data['country_code']
+                    org = data['org']
                     org = org.upper().replace('LLC', '').replace('JSC', '').replace('COM', '').replace('INC', '').replace('LTD', '').replace('.', '').replace(',', '').replace('"', '').replace('(', '').replace(')', '').split(' ')
                     org = [word[:6] for word in org if word]
                     org = ' '.join(org[:2])
