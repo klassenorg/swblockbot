@@ -410,8 +410,10 @@ bot_check_active = True
 counter = 2
 
 def find_bots(context):
+    logger.info("Access log refresh started")
     subprocess.call(['rm', creds.accesslogpath])
     subprocess.call(['sh', creds.get_access_log_path])
+    logger.info("Access log refresh done")
     global counter
     if bot_check_active and counter == 2:
         conn, c = initdb()
@@ -450,6 +452,7 @@ def find_bots(context):
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
             updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+            logger.info("Probably bot list:\n{}".format(output))
         counter = 0
     else:
         counter += 1
