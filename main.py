@@ -470,13 +470,13 @@ def top10_guest_id(update, context):
 
     for mvid_guest_id in sorted(mgi_ip, key=lambda mvid_guest_id: len(mgi_ip[mvid_guest_id]), reverse=True)[:10]:
         #print(mvid_guest_id, len(mgi_ip[mvid_guest_id]), ', '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), ' '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
             output += user[0] + user[1] + '\n' + '------\n'
 
-    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID_GUEST_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
+    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID GUEST ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
 def top10_crm_id(update, context):
     with open(creds.accesslogpath) as f:
@@ -494,13 +494,13 @@ def top10_crm_id(update, context):
 
     for mvid_crm_id in sorted(mci_ip, key=lambda mvid_crm_id: len(mci_ip[mvid_crm_id]), reverse=True)[:10]:
         #print(mvid_crm_id, len(mci_ip[mvid_crm_id]), ', '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), ' '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
             output += user[0] + user[1] + '\n' + '------\n'
 
-    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID_CRM_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
+    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID CRM ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
 @run_async
 def whois(update, context):
