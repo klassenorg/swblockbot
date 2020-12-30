@@ -19,6 +19,7 @@ import sys
 from tabulate import tabulate
 from collections import defaultdict
 import help_txt
+import cx_Oracle
 
 
 def checkIP(ip):
@@ -413,6 +414,7 @@ def find_bots(context):
     subprocess.call(['sh', creds.get_access_log_path])
     global counter
     if bot_check_active and counter == 2:
+        conn, c = initdb()
         list_to_show = []
         with open(creds.accesslogpath) as f:
             content = f.readlines()
@@ -439,13 +441,20 @@ def find_bots(context):
                 else:
                     region = '\U0001F3F4'
                     org = 'Unknown'
-                list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip])), region, org])
+                connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
+                cursor = connection.cursor()
+                query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
+                result = int(cursor.execute(query).fetchone()[0])
+                if result < 1:
+                    list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip])), region, org])
         output = tabulate(list_to_show, headers=list_headers)
         if len(list_to_show) > 0:
             updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
         counter = 0
     else:
         counter += 1
+
+    
 
 @run_async
 def whois(update, context):
