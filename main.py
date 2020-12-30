@@ -387,8 +387,8 @@ def checkAndUnban(context):
 
 @run_async
 def grep_ip(update, context):
-    if not context.args or len(context.args) not in [1, 2] or not (checkIP(context.args[0]) or re.match(r'\d{10-11}')):
-        updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один ip адрес.')
+    if not context.args or len(context.args) not in [1, 2] or not (checkIP(context.args[0]) or re.match(r'^[\d]{10,11}$', context.args[0])):
+        updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести ip адрес/crm_id(10 цифр)/guest_id(11 цифр).')
         return
     ip = context.args[0]
     if len(context.args) == 2:
@@ -454,7 +454,7 @@ def find_bots(context):
     else:
         counter += 1
 
-def check_by_guest_id(update, context):
+def top10_guest_id(update, context):
     with open(creds.accesslogpath) as f:
         content = f.readlines()
     list_to_show = []
@@ -470,15 +470,15 @@ def check_by_guest_id(update, context):
 
     for mvid_guest_id in sorted(mgi_ip, key=lambda mvid_guest_id: len(mgi_ip[mvid_guest_id]), reverse=True)[:10]:
         #print(mvid_guest_id, len(mgi_ip[mvid_guest_id]), ', '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(creds.L2_chat_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
             output += user[0] + user[1] + '\n' + '------\n'
 
-    updater.bot.send_message(update.effective_user.id, 'Top 10 MVID_GUEST_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
+    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID_GUEST_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
-def check_by_crm_id(update, context):
+def top10_crm_id(update, context):
     with open(creds.accesslogpath) as f:
         content = f.readlines()
     list_to_show = []
@@ -494,13 +494,13 @@ def check_by_crm_id(update, context):
 
     for mvid_crm_id in sorted(mci_ip, key=lambda mvid_crm_id: len(mci_ip[mvid_crm_id]), reverse=True)[:10]:
         #print(mvid_crm_id, len(mci_ip[mvid_crm_id]), ', '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(creds.L2_chat_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
             output += user[0] + user[1] + '\n' + '------\n'
 
-    updater.bot.send_message(update.effective_user.id, 'Top 10 MVID_CRM_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
+    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID_CRM_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
 @run_async
 def whois(update, context):
@@ -563,6 +563,8 @@ def main():
     dp.add_handler(CommandHandler("whois", whois))
     dp.add_handler(CommandHandler("grep", grep_ip))
     dp.add_handler(CommandHandler("msglen", msglen))
+    dp.add_handler(CommandHandler("guest", top10_guest_id))
+    dp.add_handler(CommandHandler("crm", top10_crm_id))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
