@@ -387,7 +387,7 @@ def checkAndUnban(context):
 
 @run_async
 def grep_ip(update, context):
-    if not context.args or len(context.args) not in [1, 2] or not checkIP(context.args[0]):
+    if not context.args or len(context.args) not in [1, 2] or not (checkIP(context.args[0]) or re.match(r'\d{10-11}')):
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один ip адрес.')
         return
     ip = context.args[0]
@@ -454,7 +454,53 @@ def find_bots(context):
     else:
         counter += 1
 
-    
+def check_by_guest_id(update, context):
+    with open(creds.accesslogpath) as f:
+        content = f.readlines()
+    list_to_show = []
+    mgi_ip = defaultdict(list)
+    for line in content:
+        mvid_guest_id = re.findall(r"MVID_GUEST_ID=\d{11}", line)
+        if mvid_guest_id:
+            mvid_guest_id = mvid_guest_id[0]
+            mvid_guest_id = str(mvid_guest_id.split('=')[1])
+        ip = line.split(' ', 1)[0]
+        if isinstance(mvid_guest_id, str):
+            mgi_ip[mvid_guest_id].append(ip)
+
+    for mvid_guest_id in sorted(mgi_ip, key=lambda mvid_guest_id: len(mgi_ip[mvid_guest_id]), reverse=True)[:10]:
+        #print(mvid_guest_id, len(mgi_ip[mvid_guest_id]), ', '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.']))
+        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
+    output = ''
+    for user in list_to_show:
+        if user[0] and user[1]:
+            output += user[0] + user[1] + '\n' + '------\n'
+
+    updater.bot.send_message(update.effective_user.id, 'Top 10 MVID_GUEST_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
+
+def check_by_crm_id(update, context):
+    with open(creds.accesslogpath) as f:
+        content = f.readlines()
+    list_to_show = []
+    mci_ip = defaultdict(list)
+    for line in content:
+        mvid_crm_id = re.findall(r"MVID_CRM_ID=\d{10}", line)
+        if mvid_crm_id:
+            mvid_crm_id = mvid_crm_id[0]
+            mvid_crm_id = str(mvid_crm_id.split('=')[1])
+        ip = line.split(' ', 1)[0]
+        if isinstance(mvid_crm_id, str):
+            mci_ip[mvid_crm_id].append(ip)
+
+    for mvid_crm_id in sorted(mci_ip, key=lambda mvid_crm_id: len(mci_ip[mvid_crm_id]), reverse=True)[:10]:
+        #print(mvid_crm_id, len(mci_ip[mvid_crm_id]), ', '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.']))
+        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
+    output = ''
+    for user in list_to_show:
+        if user[0] and user[1]:
+            output += user[0] + user[1] + '\n' + '------\n'
+
+    updater.bot.send_message(update.effective_user.id, 'Top 10 MVID_CRM_ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
 @run_async
 def whois(update, context):
