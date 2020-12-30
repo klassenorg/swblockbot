@@ -470,7 +470,7 @@ def top10_guest_id(update, context):
 
     for mvid_guest_id in sorted(mgi_ip, key=lambda mvid_guest_id: len(mgi_ip[mvid_guest_id]), reverse=True)[:10]:
         #print(mvid_guest_id, len(mgi_ip[mvid_guest_id]), ', '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(creds.L2_chat_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), '\n'.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
@@ -494,7 +494,7 @@ def top10_crm_id(update, context):
 
     for mvid_crm_id in sorted(mci_ip, key=lambda mvid_crm_id: len(mci_ip[mvid_crm_id]), reverse=True)[:10]:
         #print(mvid_crm_id, len(mci_ip[mvid_crm_id]), ', '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(creds.L2_chat_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
+        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), '\n'.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
     output = ''
     for user in list_to_show:
         if user[0] and user[1]:
