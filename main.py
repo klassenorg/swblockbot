@@ -24,9 +24,6 @@ import LogHandler
 
 
 def whois_api(ip):
-    if True: #testing
-        data = {"status" : "fail"}
-        return data
     data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
     if data["status"] == "fail":
         data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,org,isp&lang=ru'.format(ip)).json()
@@ -488,7 +485,7 @@ def force_refresh(update, context):
 @refresh_accesslogs
 def top_ip(update, context):
     if context.args and len(context.args) == 1 and context.args[0].isdigit():
-        top = context.args[0]
+        top = int(context.args[0])
     else: 
         top = 10
     tabulate_list = []
@@ -512,7 +509,7 @@ def top_ip(update, context):
 @refresh_accesslogs
 def top_guest_id(update, context):
     if context.args and len(context.args) == 1 and context.args[0].isdigit():
-        top = context.args[0]
+        top = int(context.args[0])
     else: 
         top = 10
     top_list = log_handler.get_top_by_cookie(cookie_re=r"MVID_GUEST_ID=\d{11}", top=top)
@@ -537,7 +534,7 @@ def top_guest_id(update, context):
 @refresh_accesslogs
 def top_ps5(update, context):
     if context.args and len(context.args) == 1 and context.args[0].isdigit():
-        top = context.args[0]
+        top = int(context.args[0])
     else: 
         top = 10
     tabulate_list = []
@@ -561,7 +558,7 @@ def top_ps5(update, context):
 @refresh_accesslogs
 def top_auth(update, context):
     if context.args and len(context.args) == 1 and context.args[0].isdigit():
-        top = context.args[0]
+        top = int(context.args[0])
     else: 
         top = 10
     tabulate_list = []
