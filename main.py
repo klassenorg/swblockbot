@@ -520,7 +520,7 @@ def top_guest_id(update, context):
     for cookie in top_list:
         count = len(top_list[cookie])
         output += "{} {}:\n".format(cookie, count)
-        for ip in top_list[cookie]:
+        for ip in list(set(top_list[cookie])):
             whois = whois_api(ip)
             if whois['status'] == 'success':
                 region = flag.flag(whois['countryCode']) + whois['countryCode']
@@ -594,7 +594,7 @@ def top_cookie(update, context):
         for cookie in top_list:
             count = len(top_list[cookie])
             output += "{} {}:\n".format(cookie, count)
-            for ip in top_list[cookie]:
+            for ip in list(set(top_list[cookie])):
                 whois = whois_api(ip)
                 if whois['status'] == 'success':
                     region = flag.flag(whois['countryCode']) + whois['countryCode']
