@@ -24,6 +24,9 @@ import LogHandler
 
 
 def whois_api(ip):
+    if True: #testing
+        data = {"status" : "fail"}
+        return data
     data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
     if data["status"] == "fail":
         data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,org,isp&lang=ru'.format(ip)).json()
@@ -438,8 +441,14 @@ def grep_ip(update, context):
 
 bot_check_active = True
 
-@refresh_accesslogs
 def find_bots(context):
+    global last_refresh
+    if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
+        logger.info("Access log refresh started")
+        subprocess.call(['rm', creds.accesslogpath])
+        subprocess.call(['sh', creds.get_access_log_path])
+        logger.info("Access log refresh done")
+        last_refresh = datetime.datetime.now()
     tabulate_list = []
     tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
     top_list = log_handler.get_top_by_requests_count(top=20)
@@ -453,7 +462,7 @@ def find_bots(context):
         result = int(cursor.execute(query).fetchone()[0])
         if result > 0:
             continue
-        avg_rt = int(sum(top_list[ip])/count)
+        avg_rt = int(sum(top_list[ip])/count*1000)
         whois = whois_api(ip)
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
@@ -487,7 +496,7 @@ def top_ip(update, context):
     top_list = log_handler.get_top_by_requests_count(top=top)
     for ip in top_list:
         count = len(top_list[ip])
-        avg_rt = int(sum(top_list[ip])/count)
+        avg_rt = int(sum(top_list[ip])/count*1000)
         whois = whois_api(ip)
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
