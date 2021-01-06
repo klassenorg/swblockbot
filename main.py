@@ -518,13 +518,8 @@ def top_guest_id(update, context):
         count = len(top_list[cookie])
         output += "{} {}:\n".format(cookie, count)
         for ip in list(set(top_list[cookie])):
-            whois = whois_api(ip)
-            if whois['status'] == 'success':
-                region = flag.flag(whois['countryCode']) + whois['countryCode']
-            else: 
-                region = '\U0001F3F4' + 'NaN'
-            output += "{} {}, ".format(ip, region)
-        output = output[:-2]
+            output += "{} ".format(ip)
+        output = output[:-1]
         output += "\n"
     output = output[:-1]
     logger.info('top_guest_id\n' + output)
@@ -592,13 +587,8 @@ def top_cookie(update, context):
             count = len(top_list[cookie])
             output += "{} {}:\n".format(cookie, count)
             for ip in list(set(top_list[cookie])):
-                whois = whois_api(ip)
-                if whois['status'] == 'success':
-                    region = flag.flag(whois['countryCode']) + whois['countryCode']
-                else: 
-                    region = '\U0001F3F4' + 'NaN'
-                output += "{} {}, ".format(ip, region)
-            output = output[:-2]
+                output += "{} ".format(ip)
+            output = output[:-1]
             output += "\n"
         output = output[:-1]
         logger.info('top_cookie\n' + output)
@@ -626,7 +616,7 @@ def top_url(update, context):
                 tabulate_list.append([ip, count, region, org])
             output = tabulate(tabulate_list, headers=tabulate_headers)
             logger.info('top_url\n' + output)
-            updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URLFOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
+            updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URL FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_url regexp')
 
