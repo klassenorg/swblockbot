@@ -23,6 +23,20 @@ import cx_Oracle
 import LogHandler
 
 
+def whois_api(ip):
+    data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
+    if data["status"] == "fail":
+        data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,org,isp&lang=ru'.format(ip)).json()
+        if not data["success"]:
+            data["status"] == "fail"
+            return data
+        data["status"] = "success"
+        data["countryCode"] = data["country_code"]
+        data["query"] = data["ip"]
+    return data
+        
+
+
 def checkIP(ip):
     return re.match(r"^(\d{1,3}\.){3}\d{1,3}(\/(\d|[1-2][0-9]|3[0-2]))?$",ip)
 
@@ -416,23 +430,22 @@ def grep_ip(update, context):
     else:
         subprocess.call(['sh', creds.grep_path, ip])
     send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
-    if not os.stat(send_filename).st_size == 352:
+    if not os.stat(send_filename).st_size not in [352, 396]:
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     else: 
-        updater.bot.send_message(update.effective_chat.id, 'Пока данных нет. Бот собирает данные каждые 10 минут, попробуй подождать немного.')
+        updater.bot.send_message(update.effective_chat.id, 'Данных нет.')
     subprocess.call(['rm', send_filename])
 
 bot_check_active = True
 
 @refresh_accesslogs
-def find_bots(update, context):
+def find_bots(context):
     tabulate_list = []
     tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
     top_list = log_handler.get_top_by_requests_count(top=20)
     connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
     cursor = connection.cursor()
     for ip in top_list:
-        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
         count = len(top_list[ip])
         if count < 600: 
             break
@@ -441,8 +454,9 @@ def find_bots(update, context):
         if result > 0:
             continue
         avg_rt = int(sum(top_list[ip])/count)
-        if whois['success']:
-            region = flag.flag(whois['country_code']) + whois['country_code']
+        whois = whois_api(ip)
+        if whois['status'] == 'success':
+            region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
             region = '\U0001F3F4' + 'NaN'
@@ -472,17 +486,18 @@ def top_ip(update, context):
     tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
     top_list = log_handler.get_top_by_requests_count(top=top)
     for ip in top_list:
-        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
         count = len(top_list[ip])
         avg_rt = int(sum(top_list[ip])/count)
-        if whois['success']:
-            region = flag.flag(whois['country_code']) + whois['country_code']
+        whois = whois_api(ip)
+        if whois['status'] == 'success':
+            region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
             region = '\U0001F3F4' + 'NaN'
             org = 'Unknown'
         tabulate_list.append([ip, count, avg_rt, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
+    logger.info('top_ip\n' + output)
     updater.bot.send_message(update.effective_chat.id, 'TOP {} IP FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
 
 @refresh_accesslogs
@@ -497,15 +512,16 @@ def top_guest_id(update, context):
         count = len(top_list[cookie])
         output += "{} {}:\n".format(cookie, count)
         for ip in top_list[cookie]:
-            whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code'.format(ip)).json()
-            if whois['success']:
-                region = flag.flag(whois['country_code']) + whois['country_code']
+            whois = whois_api(ip)
+            if whois['status'] == 'success':
+                region = flag.flag(whois['countryCode']) + whois['countryCode']
             else: 
                 region = '\U0001F3F4' + 'NaN'
             output += "{} {}, ".format(ip, region)
         output = output[:-2]
         output += "\n"
     output = output[:-1]
+    logger.info('top_guest_id\n' + output)
     updater.bot.send_message(update.effective_chat.id, 'TOP {} MVID GUEST ID FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
 
 
@@ -519,16 +535,17 @@ def top_ps5(update, context):
     tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
     top_list = log_handler.get_top_by_url(url_re=r"(40074203|40073270)", top=top)
     for ip in top_list:
-        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
         count = len(top_list[ip])
-        if whois['success']:
-            region = flag.flag(whois['country_code']) + whois['country_code']
+        whois = whois_api(ip)
+        if whois['status'] == 'success':
+            region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
             region = '\U0001F3F4' + 'NaN'
             org = 'Unknown'
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
+    logger.info('top_ps5\n' + output)
     updater.bot.send_message(update.effective_chat.id, 'TOP {} PS5 FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
 
 
@@ -542,16 +559,17 @@ def top_auth(update, context):
     tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
     top_list = log_handler.get_top_by_url(url_re=r"(\/byUserCredentials)|(VerificationActor\/getCodeForOtp)|(VerificationActor\/sendCodeForOtp)", top=top)
     for ip in top_list:
-        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
         count = len(top_list[ip])
-        if whois['success']:
-            region = flag.flag(whois['country_code']) + whois['country_code']
+        whois = whois_api(ip)
+        if whois['status'] == 'success':
+            region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
             region = '\U0001F3F4' + 'NaN'
             org = 'Unknown'
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
+    logger.info('top_auth\n' + output)
     updater.bot.send_message(update.effective_chat.id, 'TOP {} AUTH(OTP AND CREDS) FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
 
 
@@ -568,15 +586,16 @@ def top_cookie(update, context):
             count = len(top_list[cookie])
             output += "{} {}:\n".format(cookie, count)
             for ip in top_list[cookie]:
-                whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code'.format(ip)).json()
-                if whois['success']:
-                    region = flag.flag(whois['country_code']) + whois['country_code']
+                whois = whois_api(ip)
+                if whois['status'] == 'success':
+                    region = flag.flag(whois['countryCode']) + whois['countryCode']
                 else: 
                     region = '\U0001F3F4' + 'NaN'
                 output += "{} {}, ".format(ip, region)
             output = output[:-2]
             output += "\n"
         output = output[:-1]
+        logger.info('top_cookie\n' + output)
         updater.bot.send_message(update.effective_chat.id, 'TOP {} {} FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0].split('=', 1)[0], output), parse_mode=ParseMode.MARKDOWN)
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_cookie regexp(в формате cookie=value)')
@@ -590,16 +609,17 @@ def top_url(update, context):
             tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
             top_list = log_handler.get_top_by_url(url_re=context.args[0], top=10)
             for ip in top_list:
-                whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
                 count = len(top_list[ip])
-                if whois['success']:
-                    region = flag.flag(whois['country_code']) + whois['country_code']
+                whois = whois_api(ip)
+                if whois['status'] == 'success':
+                    region = flag.flag(whois['countryCode']) + whois['countryCode']
                     org = whois['org']
                 else: 
                     region = '\U0001F3F4' + 'NaN'
                     org = 'Unknown'
                 tabulate_list.append([ip, count, region, org])
             output = tabulate(tabulate_list, headers=tabulate_headers)
+            logger.info('top_url\n' + output)
             updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URLFOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_url regexp')
@@ -613,12 +633,12 @@ def whois(update, context):
         updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести один аргумент: IP или CIDR')
         return
     ip = context.args[0]
-    data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,latitude,longitude,org,isp&lang=ru'.format(ip)).json()
-    if data['success']:
+    data = whois_api(ip)
+    if data['status'] == 'success':
         output = '''IP: {} {}
 REGION: {}, CITY: {}
 ORG: {}
-ISP: {}'''.format(data['ip'], flag.flag(data['country_code']),
+ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         data['region'], data['city'],
         data['org'],
         data['isp'])
