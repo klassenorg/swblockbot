@@ -20,6 +20,7 @@ from tabulate import tabulate
 from collections import defaultdict
 import help_txt
 import cx_Oracle
+import LogHandler
 
 
 def checkIP(ip):
@@ -45,6 +46,21 @@ def refresh_ip_list():
 
 def ip_list_to_data(ip_list):
     return json.dumps({"list" : ip_list})
+
+
+def refresh_accesslogs(func):
+    @wraps(func)
+    def wrapped(update, context, *args, **kwargs):
+        global last_refresh
+        if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
+            logger.info("Access log refresh started")
+            subprocess.call(['rm', creds.accesslogpath])
+            subprocess.call(['sh', creds.get_access_log_path])
+            logger.info("Access log refresh done")
+            last_refresh = datetime.datetime.now()
+        return func(update, context, *args, **kwargs)
+    return wrapped
+
 
 
 def restricted(func):
@@ -368,8 +384,6 @@ def show_list(update, context):
         updater.bot.send_message(update.effective_chat.id, '```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
     
 
-
-
 def checkAndUnban(context):
     if check_active: 
         unban_list = []
@@ -385,6 +399,9 @@ def checkAndUnban(context):
             updater.bot.send_message(creds.L2_chat_id, 'Разблокированы по истечении времени бана:\n{}'.format('\n'.join(unban_list)))
             logger.info()
 
+
+
+@refresh_accesslogs
 @run_async
 def grep_ip(update, context):
     if not context.args or len(context.args) not in [1, 2] or not (checkIP(context.args[0]) or re.match(r'^[\d]{10,11}$', context.args[0])):
@@ -407,103 +424,188 @@ def grep_ip(update, context):
 
 bot_check_active = True
 
-counter = 2
+@refresh_accesslogs
+def find_bots(update, context):
+    tabulate_list = []
+    tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
+    top_list = log_handler.get_top_by_requests_count(top=20)
+    connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
+    cursor = connection.cursor()
+    for ip in top_list:
+        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
+        count = len(top_list[ip])
+        if count < 600: 
+            break
+        query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
+        result = int(cursor.execute(query).fetchone()[0])
+        if result > 0:
+            continue
+        avg_rt = int(sum(top_list[ip])/count)
+        if whois['success']:
+            region = flag.flag(whois['country_code']) + whois['country_code']
+            org = whois['org']
+        else: 
+            region = '\U0001F3F4' + 'NaN'
+            org = 'Unknown'
+        tabulate_list.append([ip, count, avg_rt, region, org])
+    if tabulate_list:
+        output = tabulate(tabulate_list, headers=tabulate_headers)
+        updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние сутки):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
-def find_bots(context):
+
+@restricted
+def force_refresh(update, context):
+    global last_refresh
     logger.info("Access log refresh started")
     subprocess.call(['rm', creds.accesslogpath])
     subprocess.call(['sh', creds.get_access_log_path])
     logger.info("Access log refresh done")
-    global counter
-    if bot_check_active and counter == 2:
-        conn, c = initdb()
-        list_to_show = []
-        with open(creds.accesslogpath) as f:
-            content = f.readlines()
-        ip_rt = defaultdict(list)
-        for line in content:
-            ip = line.split(' ', 1)[0]
-            rt = re.findall(r"rt=\d\.\d{3}", line)
-            if rt:
-                rt = rt[0]
-            if not isinstance(rt, list):
-                rt = float(rt.split('=')[1])
-                ip_rt[ip].append(int(rt*1000))
+    last_refresh = datetime.datetime.now()
 
-        list_headers=['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
-        for ip in sorted(ip_rt, key=lambda ip: len(ip_rt[ip]), reverse=True):
-            if ip[:3] != '10.' and len(ip_rt[ip]) > 900:
-                data = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
-                if data['success']:
-                    region = flag.flag(data['country_code']) + data['country_code']
-                    org = data['org']
-                    org = org.upper().replace('LLC', '').replace('JSC', '').replace('COM', '').replace('INC', '').replace('LTD', '').replace('.', '').replace(',', '').replace('"', '').replace('(', '').replace(')', '').split(' ')
-                    org = [word[:6] for word in org if word]
-                    org = ' '.join(org[:2])
-                else:
-                    region = '\U0001F3F4'
-                    org = 'Unknown'
-                connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
-                cursor = connection.cursor()
-                query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
-                result = int(cursor.execute(query).fetchone()[0])
-                if result < 1:
-                    list_to_show.append([ip, len(ip_rt[ip]), int(sum(ip_rt[ip])/len(ip_rt[ip])), region, org])
-        output = tabulate(list_to_show, headers=list_headers)
-        if len(list_to_show) > 0:
-            updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
-            logger.info("Probably bot list:\n{}".format(output))
-        counter = 0
+@refresh_accesslogs
+def top_ip(update, context):
+    if context.args and len(context.args) == 1 and context.args[0].isdigit():
+        top = context.args[0]
+    else: 
+        top = 10
+    tabulate_list = []
+    tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
+    top_list = log_handler.get_top_by_requests_count(top=top)
+    for ip in top_list:
+        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
+        count = len(top_list[ip])
+        avg_rt = int(sum(top_list[ip])/count)
+        if whois['success']:
+            region = flag.flag(whois['country_code']) + whois['country_code']
+            org = whois['org']
+        else: 
+            region = '\U0001F3F4' + 'NaN'
+            org = 'Unknown'
+        tabulate_list.append([ip, count, avg_rt, region, org])
+    output = tabulate(tabulate_list, headers=tabulate_headers)
+    updater.bot.send_message(update.effective_chat.id, 'TOP {} IP FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+
+@refresh_accesslogs
+def top_guest_id(update, context):
+    if context.args and len(context.args) == 1 and context.args[0].isdigit():
+        top = context.args[0]
+    else: 
+        top = 10
+    top_list = log_handler.get_top_by_cookie(cookie_re=r"MVID_GUEST_ID=\d{11}", top=top)
+    output = ''
+    for cookie in top_list:
+        count = len(top_list[cookie])
+        output += "{} {}:\n".format(cookie, count)
+        for ip in top_list[cookie]:
+            whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code'.format(ip)).json()
+            if whois['success']:
+                region = flag.flag(whois['country_code']) + whois['country_code']
+            else: 
+                region = '\U0001F3F4' + 'NaN'
+            output += "{} {}, ".format(ip, region)
+        output = output[:-2]
+        output += "\n"
+    output = output[:-1]
+    updater.bot.send_message(update.effective_chat.id, 'TOP {} MVID GUEST ID FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+
+
+@refresh_accesslogs
+def top_ps5(update, context):
+    if context.args and len(context.args) == 1 and context.args[0].isdigit():
+        top = context.args[0]
+    else: 
+        top = 10
+    tabulate_list = []
+    tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+    top_list = log_handler.get_top_by_url(url_re=r"(40074203|40073270)", top=top)
+    for ip in top_list:
+        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
+        count = len(top_list[ip])
+        if whois['success']:
+            region = flag.flag(whois['country_code']) + whois['country_code']
+            org = whois['org']
+        else: 
+            region = '\U0001F3F4' + 'NaN'
+            org = 'Unknown'
+        tabulate_list.append([ip, count, region, org])
+    output = tabulate(tabulate_list, headers=tabulate_headers)
+    updater.bot.send_message(update.effective_chat.id, 'TOP {} PS5 FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+
+
+@refresh_accesslogs
+def top_auth(update, context):
+    if context.args and len(context.args) == 1 and context.args[0].isdigit():
+        top = context.args[0]
+    else: 
+        top = 10
+    tabulate_list = []
+    tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+    top_list = log_handler.get_top_by_url(url_re=r"(\/byUserCredentials)|(VerificationActor\/getCodeForOtp)|(VerificationActor\/sendCodeForOtp)", top=top)
+    for ip in top_list:
+        whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
+        count = len(top_list[ip])
+        if whois['success']:
+            region = flag.flag(whois['country_code']) + whois['country_code']
+            org = whois['org']
+        else: 
+            region = '\U0001F3F4' + 'NaN'
+            org = 'Unknown'
+        tabulate_list.append([ip, count, region, org])
+    output = tabulate(tabulate_list, headers=tabulate_headers)
+    updater.bot.send_message(update.effective_chat.id, 'TOP {} AUTH(OTP AND CREDS) FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+
+
+@refresh_accesslogs
+def top_cookie(update, context):
+    if context.args and len(context.args) == 1:
+        try:
+            top_list = log_handler.get_top_by_cookie(cookie_re=context.args[0], top=10)
+        except:
+            updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_cookie regexp(в формате cookie=value)')
+            return
+        output = ''
+        for cookie in top_list:
+            count = len(top_list[cookie])
+            output += "{} {}:\n".format(cookie, count)
+            for ip in top_list[cookie]:
+                whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code'.format(ip)).json()
+                if whois['success']:
+                    region = flag.flag(whois['country_code']) + whois['country_code']
+                else: 
+                    region = '\U0001F3F4' + 'NaN'
+                output += "{} {}, ".format(ip, region)
+            output = output[:-2]
+            output += "\n"
+        output = output[:-1]
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} {} FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0].split('=', 1)[0], output), parse_mode=ParseMode.MARKDOWN)
     else:
-        counter += 1
+        updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_cookie regexp(в формате cookie=value)')
+        return
 
-def top10_guest_id(update, context):
-    with open(creds.accesslogpath) as f:
-        content = f.readlines()
-    list_to_show = []
-    mgi_ip = defaultdict(list)
-    for line in content:
-        mvid_guest_id = re.findall(r"MVID_GUEST_ID=\d{11}", line)
-        if mvid_guest_id:
-            mvid_guest_id = mvid_guest_id[0]
-            mvid_guest_id = str(mvid_guest_id.split('=')[1])
-        ip = line.split(' ', 1)[0]
-        if isinstance(mvid_guest_id, str):
-            mgi_ip[mvid_guest_id].append(ip)
 
-    for mvid_guest_id in sorted(mgi_ip, key=lambda mvid_guest_id: len(mgi_ip[mvid_guest_id]), reverse=True)[:10]:
-        #print(mvid_guest_id, len(mgi_ip[mvid_guest_id]), ', '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_guest_id, str(len(mgi_ip[mvid_guest_id]))), ' '.join([ip for ip in set(mgi_ip[mvid_guest_id]) if ip[:3] != '10.'])])
-    output = ''
-    for user in list_to_show:
-        if user[0] and user[1]:
-            output += user[0] + user[1] + '\n' + '------\n'
+@refresh_accesslogs
+def top_url(update, context):
+    if context.args and len(context.args) == 1:
+            tabulate_list = []
+            tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+            top_list = log_handler.get_top_by_url(url_re=context.args[0], top=10)
+            for ip in top_list:
+                whois = requests.get('http://ipwhois.app/json/{}?objects=success,country_code,org'.format(ip)).json()
+                count = len(top_list[ip])
+                if whois['success']:
+                    region = flag.flag(whois['country_code']) + whois['country_code']
+                    org = whois['org']
+                else: 
+                    region = '\U0001F3F4' + 'NaN'
+                    org = 'Unknown'
+                tabulate_list.append([ip, count, region, org])
+            output = tabulate(tabulate_list, headers=tabulate_headers)
+            updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URLFOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_url regexp')
 
-    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID GUEST ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
-def top10_crm_id(update, context):
-    with open(creds.accesslogpath) as f:
-        content = f.readlines()
-    list_to_show = []
-    mci_ip = defaultdict(list)
-    for line in content:
-        mvid_crm_id = re.findall(r"MVID_CRM_ID=\d{10}", line)
-        if mvid_crm_id:
-            mvid_crm_id = mvid_crm_id[0]
-            mvid_crm_id = str(mvid_crm_id.split('=')[1])
-        ip = line.split(' ', 1)[0]
-        if isinstance(mvid_crm_id, str):
-            mci_ip[mvid_crm_id].append(ip)
 
-    for mvid_crm_id in sorted(mci_ip, key=lambda mvid_crm_id: len(mci_ip[mvid_crm_id]), reverse=True)[:10]:
-        #print(mvid_crm_id, len(mci_ip[mvid_crm_id]), ', '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.']))
-        list_to_show.append(['{} : {}\n'.format(mvid_crm_id, str(len(mci_ip[mvid_crm_id]))), ' '.join([ip for ip in set(mci_ip[mvid_crm_id]) if ip[:3] != '10.'])])
-    output = ''
-    for user in list_to_show:
-        if user[0] and user[1]:
-            output += user[0] + user[1] + '\n' + '------\n'
-
-    updater.bot.send_message(update.effective_chat.id, 'Top 10 MVID CRM ID:\n```\n{}```'.format(output[:-8]), parse_mode=ParseMode.MARKDOWN)
 
 @run_async
 def whois(update, context):
@@ -549,11 +651,21 @@ def main():
     global updater
     updater = Updater(creds.bot_api, use_context=True)
 
+    global last_refresh
+    last_refresh = datetime.datetime.now()
+    logger.info("Access log refresh started")
+    subprocess.call(['rm', creds.accesslogpath])
+    subprocess.call(['sh', creds.get_access_log_path])
+    logger.info("Access log refresh done")
+
+    global log_handler
+    log_handler = LogHandler.LogHandler(creds.accesslogpath)
+
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
     prepareDB()
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
-    updater.job_queue.run_repeating(find_bots, interval=600, first=0)
+    updater.job_queue.run_repeating(find_bots, interval=3600, first=0)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
@@ -566,8 +678,13 @@ def main():
     dp.add_handler(CommandHandler("whois", whois))
     dp.add_handler(CommandHandler("grep", grep_ip))
     dp.add_handler(CommandHandler("msglen", msglen))
-    dp.add_handler(CommandHandler("guest", top10_guest_id))
-    dp.add_handler(CommandHandler("crm", top10_crm_id))
+    dp.add_handler(CommandHandler("top_guest", top_guest_id))
+    dp.add_handler(CommandHandler("top_ip", top_ip))
+    dp.add_handler(CommandHandler("top_cookie", top_cookie))
+    dp.add_handler(CommandHandler("top_auth", top_auth))
+    dp.add_handler(CommandHandler("top_ps5", top_ps5))
+    dp.add_handler(CommandHandler("top_url", top_url))
+    dp.add_handler(CommandHandler("force_refresh", force_refresh))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
