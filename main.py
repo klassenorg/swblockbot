@@ -21,6 +21,7 @@ from collections import defaultdict
 import help_txt
 import cx_Oracle
 import LogHandler
+import socket
 
 
 def whois_api(ip):
@@ -33,6 +34,7 @@ def whois_api(ip):
         data["status"] = "success"
         data["countryCode"] = data["country_code"]
         data["query"] = data["ip"]
+    data["org"] = data['isp']
     return data
         
 
@@ -68,9 +70,11 @@ def refresh_accesslogs(func):
         global last_refresh
         if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
             logger.info("Access log refresh started")
+            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
             subprocess.call(['rm', creds.accesslogpath])
             subprocess.call(['sh', creds.get_access_log_path])
             logger.info("Access log refresh done")
+            context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
             last_refresh = datetime.datetime.now()
         return func(update, context, *args, **kwargs)
     return wrapped
@@ -436,14 +440,32 @@ def grep_ip(update, context):
         updater.bot.send_message(update.effective_chat.id, 'Данных нет.')
     subprocess.call(['rm', send_filename])
 
-bot_check_active = True
+
+def check_yandex_or_google_bot(org, ip):
+    google_yandex_list = ['google', 'yandex']
+    if any(google_yandex in org.lower() for google_yandex in google_yandex_list):
+        try:
+            reversed_dns = socket.gethostbyaddr(ip)[0]
+        except:
+            return False
+        if any(google_yandex in reversed_dns for google_yandex in google_yandex_list):
+            ip_from_host = socket.gethostbyname(reversed_dns)
+            if ip_from_host == ip:
+                return True
+        else:
+            return False
+    else:
+        return False
+
 
 def find_bots(context):
     global last_refresh
     if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
         logger.info("Access log refresh started")
+        msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
         subprocess.call(['rm', creds.accesslogpath])
         subprocess.call(['sh', creds.get_access_log_path])
+        context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
         logger.info("Access log refresh done")
         last_refresh = datetime.datetime.now()
     tabulate_list = []
@@ -464,6 +486,8 @@ def find_bots(context):
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
+            if check_yandex_or_google_bot(org, ip):
+                continue
         else: 
             region = '\U0001F3F4' + 'NaN'
             org = 'Unknown'
@@ -477,8 +501,10 @@ def find_bots(context):
 def force_refresh(update, context):
     global last_refresh
     logger.info("Access log refresh started")
+    msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
     subprocess.call(['rm', creds.accesslogpath])
     subprocess.call(['sh', creds.get_access_log_path])
+    context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.')
     logger.info("Access log refresh done")
     last_refresh = datetime.datetime.now()
 
@@ -498,6 +524,8 @@ def top_ip(update, context):
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
+            if check_yandex_or_google_bot(org, ip):
+                continue
         else: 
             region = '\U0001F3F4' + 'NaN'
             org = 'Unknown'
@@ -638,6 +666,8 @@ ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         data['region'], data['city'],
         data['org'],
         data['isp'])
+        if check_yandex_or_google_bot(data['org'], ip):
+            output += '\nДанный адрес пренадлежит яндексу или гуглу, пройдена проверка на reverse DNS lookup.'
         logger.info("{} whois requested by id {}, name: {}".format(ip, update.effective_user.id, update.message.from_user.full_name))
         updater.bot.send_message(update.effective_chat.id, output)
         #updater.bot.send_location(latitude=data['latitude'], longitude=data['longitude'], chat_id=update.effective_chat.id)
