@@ -422,18 +422,21 @@ def checkAndUnban(context):
 @refresh_accesslogs
 @run_async
 def grep_ip(update, context):
-    if not context.args or len(context.args) not in [1, 2] or not (checkIP(context.args[0]) or re.match(r'^[\d]{10,11}$', context.args[0])):
-        updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести ip адрес/crm_id(10 цифр)/guest_id(11 цифр).')
+    if not context.args or len(context.args) not in [1, 2]:
+        updater.bot.send_message(update.effective_chat.id, 'Неверные аргументы')
         return
-    ip = context.args[0]
+    if 'xargs' in ' '.join(context.args).lower():
+        updater.bot.send_message(update.effective_chat.id, 'Хватит хулиганить!!')
+        return
+    ip = context.args[0].replace('|', '\\|')
     if len(context.args) == 2:
         if context.args[1].lower() != 'short':
             updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
         else: 
-            subprocess.call(['sh', creds.grep_path_short, ip])
+            subprocess.call(['sh', creds.grep_path_short, '"{}"'.format(ip)])
     else:
         subprocess.call(['sh', creds.grep_path, ip])
-    send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
+    send_filename = "{}{}.txt".format(creds.ip_files_path, '"{}"'.format(ip))
     if not os.stat(send_filename).st_size in [352, 396]:
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     else: 
