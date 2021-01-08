@@ -436,7 +436,7 @@ def grep_ip(update, context):
             subprocess.call(['sh', creds.grep_path_short, '"{}"'.format(ip).replace('|', '\|')])
     else:
         subprocess.call(['sh', creds.grep_path, '"{}"'.format(ip).replace('|', '\|')])
-    send_filename = "{}{}.txt".format(creds.ip_files_path, ip.replace('|', '\|'))
+    send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
     if not os.stat(send_filename).st_size in [352, 396]:
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     else: 
