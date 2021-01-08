@@ -464,7 +464,7 @@ def get_ip_from_text(update, context):
         if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', arg):
             output += arg + '\n'
     if output != '':
-        updater.bot.send_message(update.effective_chat.id, '```{}```'.format(output[:-1]), parse_mode=ParseMode.MARKDOWN)
+        updater.bot.send_message(update.effective_chat.id, '```\n{}```'.format(output[:-1]), parse_mode=ParseMode.MARKDOWN)
     else:
         updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
 
