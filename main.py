@@ -500,12 +500,12 @@ def find_bots(context):
             if check_yandex_or_google_bot(org, ip):
                 continue
         else: 
-            region = '\U0001F3F4' + 'NaN'
+            region = '\U0001F3F4' + 'ZZ'
             org = 'Unknown'
         tabulate_list.append([ip, count, avg_rt, region, org])
     if tabulate_list:
         output = tabulate(tabulate_list, headers=tabulate_headers)
-        updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние сутки):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+        updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние 24 часа):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
 
 @restricted
@@ -538,7 +538,7 @@ def top_ip(update, context):
             if check_yandex_or_google_bot(org, ip):
                 continue
         else: 
-            region = '\U0001F3F4' + 'NaN'
+            region = '\U0001F3F4' + 'ZZ'
             org = 'Unknown'
         tabulate_list.append([ip, count, avg_rt, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
@@ -581,7 +581,7 @@ def top_ps5(update, context):
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
-            region = '\U0001F3F4' + 'NaN'
+            region = '\U0001F3F4' + 'ZZ'
             org = 'Unknown'
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
@@ -605,7 +605,7 @@ def top_auth(update, context):
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
         else: 
-            region = '\U0001F3F4' + 'NaN'
+            region = '\U0001F3F4' + 'ZZ'
             org = 'Unknown'
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
@@ -650,7 +650,7 @@ def top_url(update, context):
                     region = flag.flag(whois['countryCode']) + whois['countryCode']
                     org = whois['org']
                 else: 
-                    region = '\U0001F3F4' + 'NaN'
+                    region = '\U0001F3F4' + 'ZZ'
                     org = 'Unknown'
                 tabulate_list.append([ip, count, region, org])
             output = tabulate(tabulate_list, headers=tabulate_headers)
@@ -678,8 +678,13 @@ ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         data['org'],
         data['isp'])
         if check_yandex_or_google_bot(data['org'], ip):
-            output += '\nДанный адрес пренадлежит яндексу или гуглу, пройдена проверка на reverse DNS lookup.'
+            output += '\nДанный ip пренадлежит яндексу или гуглу, пройдена проверка на reverse DNS lookup.'
         logger.info("{} whois requested by id {}, name: {}".format(ip, update.effective_user.id, update.message.from_user.full_name))
+        connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
+        cursor = connection.cursor()
+        query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
+        result = int(cursor.execute(query).fetchone()[0])
+        output += '\nЗа последние 24 часа с данного ip было совершено {} заказов.'.format(result)
         updater.bot.send_message(update.effective_chat.id, output)
         #updater.bot.send_location(latitude=data['latitude'], longitude=data['longitude'], chat_id=update.effective_chat.id)
         
