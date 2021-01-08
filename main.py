@@ -34,7 +34,7 @@ def whois_api(ip):
         data["status"] = "success"
         data["countryCode"] = data["country_code"]
         data["query"] = data["ip"]
-    data["org"] = data['isp']
+    data["org"], data["isp"] = data["isp"], data["org"]
     return data
         
 
@@ -457,6 +457,16 @@ def check_yandex_or_google_bot(org, ip):
     else:
         return False
 
+@run_async
+def get_ip_from_text(update, context):
+    text = ' '.join(context.args)
+    ip_list = re.findall(r'\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}', text)
+    if ip_list:
+        output = '\n'.join(ip_list)
+        updater.bot.send_message(update.effective_chat.id, '```{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
+
 
 def find_bots(context):
     global last_refresh
@@ -711,7 +721,7 @@ def main():
     dp = updater.dispatcher
     prepareDB()
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
-    updater.job_queue.run_repeating(find_bots, interval=3600, first=0)
+    updater.job_queue.run_repeating(find_bots, interval=7200, first=0)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
@@ -730,6 +740,7 @@ def main():
     dp.add_handler(CommandHandler("top_auth", top_auth))
     dp.add_handler(CommandHandler("top_ps5", top_ps5))
     dp.add_handler(CommandHandler("top_url", top_url))
+    dp.add_handler(CommandHandler("only_ip", get_ip_from_text))
     dp.add_handler(CommandHandler("force_refresh", force_refresh))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
