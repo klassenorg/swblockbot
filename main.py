@@ -428,20 +428,26 @@ def grep_ip(update, context):
     if 'xargs' in ' '.join(context.args).lower():
         updater.bot.send_message(update.effective_chat.id, 'Хватит хулиганить!!')
         return
-    ip = context.args[0]
+    if '|' in context.args[0]:
+        ips = context.args[0].split('|')
+    else:
+        ips = [context.args[0]]
     if len(context.args) == 2:
         if context.args[1].lower() != 'short':
             updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
         else: 
-            subprocess.call(['sh', creds.grep_path_short, '"{}"'.format(ip).replace('|', r'\|')])
+            for ip in ips:
+                subprocess.call(['sh', creds.grep_path_short, ip])
     else:
-        subprocess.call(['sh', creds.grep_path, '"{}"'.format(ip).replace('|', r'\|')])
-    send_filename = "{}{}.txt".format(creds.ip_files_path, ip.replace('|', r'\|'))
-    if not os.stat(send_filename).st_size in [352, 396]:
-        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
-    else: 
-        updater.bot.send_message(update.effective_chat.id, 'Данных нет.')
-    subprocess.call(['rm', send_filename])
+        for ip in ips:
+            subprocess.call(['sh', creds.grep_path, ip])
+    for ip in ips:
+        send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
+        if not os.stat(send_filename).st_size in [352, 396]:
+            context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        else: 
+            updater.bot.send_message(update.effective_chat.id, 'Данных нет.')
+        subprocess.call(['rm', send_filename])
 
 
 def check_yandex_or_google_bot(org, ip):
