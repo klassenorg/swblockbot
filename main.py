@@ -450,13 +450,14 @@ def grep_ip(update, context):
 
 
 def check_yandex_or_google_bot(org, ip):
-    google_yandex_list = ['google', 'yandex']
-    if any(google_yandex in org.lower() for google_yandex in google_yandex_list):
+    org_list = ['google', 'yandex', 'microsoft']
+    host_list = ['googlebot.com', 'google.com', 'yandex.ru', 'yandex.net', 'yandex.com', 'search.msn.com']
+    if any(good_org in org.lower() for good_org in org_list):
         try:
             reversed_dns = socket.gethostbyaddr(ip)[0]
         except:
             return False
-        if any(google_yandex in reversed_dns for google_yandex in google_yandex_list):
+        if any(good_host in reversed_dns for good_host in host_list):
             ip_from_host = socket.gethostbyname(reversed_dns)
             if ip_from_host == ip:
                 return True
