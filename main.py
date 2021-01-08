@@ -428,15 +428,15 @@ def grep_ip(update, context):
     if 'xargs' in ' '.join(context.args).lower():
         updater.bot.send_message(update.effective_chat.id, 'Хватит хулиганить!!')
         return
-    ip = context.args[0].replace('|', '\\|')
+    ip = context.args[0]
     if len(context.args) == 2:
         if context.args[1].lower() != 'short':
             updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
         else: 
-            subprocess.call(['sh', creds.grep_path_short, '"{}"'.format(ip)])
+            subprocess.call(['sh', creds.grep_path_short, '"{}"'.format(ip).replace('|', '\\|')])
     else:
-        subprocess.call(['sh', creds.grep_path, ip])
-    send_filename = "{}{}.txt".format(creds.ip_files_path, '"{}"'.format(ip))
+        subprocess.call(['sh', creds.grep_path, '"{}"'.format(ip).replace('|', '\\|')])
+    send_filename = "{}{}.txt".format(creds.ip_files_path, ip.replace('|', '\\|'))
     if not os.stat(send_filename).st_size in [352, 396]:
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
     else: 
