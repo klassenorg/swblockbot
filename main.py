@@ -459,11 +459,12 @@ def check_yandex_or_google_bot(org, ip):
 
 @run_async
 def get_ip_from_text(update, context):
-    text = ' '.join(context.args)
-    ip_list = re.findall(r'\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}', text)
-    if ip_list:
-        output = '\n'.join(ip_list)
-        updater.bot.send_message(update.effective_chat.id, '```{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+    output = ''
+    for arg in context.args:
+        if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', arg):
+            output += arg + '\n'
+    if output != '':
+        updater.bot.send_message(update.effective_chat.id, '```{}```'.format(output[:-1]), parse_mode=ParseMode.MARKDOWN)
     else:
         updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
 
