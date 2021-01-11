@@ -39,30 +39,6 @@ def whois_api(ip):
         
 
 
-def checkIP(ip):
-    return re.match(r"^(\d{1,3}\.){3}\d{1,3}(\/(\d|[1-2][0-9]|3[0-2]))?$",ip)
-
-def get_L2_list():
-    conn = sqlite3.connect('swblockbot.db')
-    c = conn.cursor()
-    data = c.execute("select ip from bans").fetchall()
-    for i in range(len(data)):
-        data[i] = data[i][0]
-    return data
-
-def refresh_ip_list():
-    global ip_list
-    ip_list = {
-    "L2" : get_L2_list(), # TODO Подумать над ним
-    "SW" : ["1.4.8.8", "14.88.14.88"], #requests.get(creds.SW_blacklist_url, headers=headers).json['list'],
-    "list" : [],
-    "wrong" : [],
-    "fail" : []
-}
-
-def ip_list_to_data(ip_list):
-    return json.dumps({"list" : ip_list})
-
 
 def refresh_accesslogs(func):
     @wraps(func)
@@ -97,7 +73,6 @@ def restricted(func):
     return wrapped
 
 headers = {
-    'Content-Type': 'application/json',
     'Accept': 'text/html',
     'cookie': creds.SW_api_token,
 }
@@ -231,19 +206,42 @@ def decline_auth(update, context):
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update.message.from_user.text, error))
 
+def checkIP(ip):
+    return re.match(r"^(\d{1,3}\.){3}\d{1,3}(\/(\d|[1-2][0-9]|3[0-2]))?$",ip)
+
+def get_L2_list():
+    conn = sqlite3.connect('swblockbot.db')
+    c = conn.cursor()
+    data = c.execute("select ip from bans").fetchall()
+    for i in range(len(data)):
+        data[i] = data[i][0]
+    return data
+
+def refresh_ip_list():
+    global ip_list
+    ip_list = {
+    "L2" : [],#get_L2_list(), # TODO Подумать над ним
+    "SW" : requests.get(creds.SW_blacklist_url, headers=headers, verify=False).json['list'],
+    "list" : [],
+    "wrong" : [],
+    "fail" : []
+}
+
+def ip_list_to_data(ip_list):
+    new_list = [ip+'/32' if '/' not in ip else ip for ip in ip_list]
+    return json.dumps({"list" : new_list})
+
 def blacklist(block, ip_list):
         #block
     if block:
         data = ip_list_to_data(ip_list)
-        print('block request data: {}'.format(data))
-        error_list = { "error_list": [] }
-        #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
+        response = requests.put('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
+        error_list = response.json["error_list"]
         return error_list["error_list"]
     #unblock
     data = ip_list_to_data(ip_list)
-    print('unblock request data: {}'.format(data))
-    error_list = { "error_list": [] }
-    #error_list = { "error_list": [{ "type": "SSL", "code": "INVALID_CERT_KEY_PAIR" }] } #TODO
+    response = requests.delete('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
+    error_list = response.json["error_list"]
     return error_list["error_list"]
 
 
@@ -270,7 +268,7 @@ def checkArgs(args):
 def get_ip_list_that_in_ban_lists(input_list):
     output_list = []
     output_list.extend(set(input_list) & set(ip_list['SW']))
-    output_list.extend(set(input_list) & set(ip_list['L2'])) #TODO подумать над ним
+    #output_list.extend(set(input_list) & set(ip_list['L2'])) #TODO подумать над ним
     output_list = list(dict.fromkeys(output_list))
     return output_list
 
@@ -378,8 +376,7 @@ def show_list(update, context):
                 if banned_forever:
                     list_to_show.append([ip, ban_date, unban_date, name])
             if context.args[0].lower() in ['sw', 'raw']:
-                #list_to_show = requests.get(creds.SW_blacklist_url, headers=headers).json #TODO
-                list_to_show = {"list" : ["1.2.3.4", "12.34.56.78", "123.123.123.123", "12.3.12.3"]}
+                list_to_show = requests.get('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers).json #TODO
                 list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
         elif not context.args:
             #timed
@@ -449,9 +446,9 @@ def grep_ip(update, context):
         subprocess.call(['rm', send_filename])
 
 
-def check_yandex_or_google_bot(org, ip):
-    org_list = ['google', 'yandex', 'microsoft']
-    host_list = ['googlebot.com', 'google.com', 'yandex.ru', 'yandex.net', 'yandex.com', 'search.msn.com']
+def verify_search_engine_bot(org, ip):
+    org_list = ['google', 'yandex', 'microsoft', 'apple']
+    host_list = ['googlebot.com', 'google.com', 'yandex.ru', 'yandex.net', 'yandex.com', 'search.msn.com', 'applebot.apple.com']
     if any(good_org in org.lower() for good_org in org_list):
         try:
             reversed_dns = socket.gethostbyaddr(ip)[0]
@@ -506,7 +503,7 @@ def find_bots(context):
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
-            if check_yandex_or_google_bot(org, ip):
+            if verify_search_engine_bot(org, ip):
                 continue
         else: 
             region = '\U0001F3F4' + 'ZZ'
@@ -544,7 +541,7 @@ def top_ip(update, context):
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
             org = whois['org']
-            if check_yandex_or_google_bot(org, ip):
+            if verify_search_engine_bot(org, ip):
                 continue
         else: 
             region = '\U0001F3F4' + 'ZZ'
@@ -686,8 +683,8 @@ ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         data['region'], data['city'],
         data['org'],
         data['isp'])
-        if check_yandex_or_google_bot(data['org'], ip):
-            output += '\nДанный ip пренадлежит яндексу или гуглу, пройдена проверка на reverse DNS lookup.'
+        if verify_search_engine_bot(data['org'], ip):
+            output += '\nДанный ip пренадлежит верифицированному поисковому боту, пройдена проверка на reverse DNS lookup.'
         logger.info("{} whois requested by id {}, name: {}".format(ip, update.effective_user.id, update.message.from_user.full_name))
         connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
         cursor = connection.cursor()
