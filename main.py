@@ -220,11 +220,18 @@ def get_L2_list():
         data[i] = data[i][0]
     return data
 
+def get_SW_list():
+    raw_list = requests.get(creds.SW_blacklist_url, headers=creds.headers, verify=False).json()['list']
+    output_list = []
+    for ip in raw_list:
+        output_list.append(ip.replace('/32', ''))
+    return output_list
+
 def refresh_ip_list():
     global ip_list
     ip_list = {
     "L2" : [],#get_L2_list(), # TODO Подумать над ним
-    "SW" : requests.get(creds.SW_blacklist_url, headers=creds.headers, verify=False).json()['list'],
+    "SW" : get_SW_list(),
     "list" : [],
     "wrong" : [],
     "fail" : []
@@ -395,6 +402,8 @@ def show_list(update, context):
         updater.bot.send_message(update.effective_chat.id, 'Данный список пуст.')
         return
     output = tabulate(list_to_show, headers=list_headers)
+    if context.args[0].lower() in ['sw', 'raw']:
+        output = '\n'.join(list_to_show)
     if len(list_to_show) > message_lenght:
         send_filename = "{}blocklist_{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
         with open(send_filename, 'w') as out_file:
