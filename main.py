@@ -221,7 +221,7 @@ def refresh_ip_list():
     global ip_list
     ip_list = {
     "L2" : [],#get_L2_list(), # TODO Подумать над ним
-    "SW" : requests.get(creds.SW_blacklist_url, headers=headers, verify=False).json['list'],
+    "SW" : requests.get(creds.SW_blacklist_url, headers=headers, verify=False).json()['list'],
     "list" : [],
     "wrong" : [],
     "fail" : []
@@ -236,12 +236,12 @@ def blacklist(block, ip_list):
     if block:
         data = ip_list_to_data(ip_list)
         response = requests.put('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
-        error_list = response.json["error_list"]
+        error_list = response.json()["error_list"]
         return error_list["error_list"]
     #unblock
     data = ip_list_to_data(ip_list)
     response = requests.delete('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
-    error_list = response.json["error_list"]
+    error_list = response.json()["error_list"]
     return error_list["error_list"]
 
 
@@ -376,7 +376,7 @@ def show_list(update, context):
                 if banned_forever:
                     list_to_show.append([ip, ban_date, unban_date, name])
             if context.args[0].lower() in ['sw', 'raw']:
-                list_to_show = requests.get('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers).json #TODO
+                list_to_show = requests.get('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers).json()["list"] #TODO
                 list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
         elif not context.args:
             #timed
