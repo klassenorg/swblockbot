@@ -242,14 +242,13 @@ def ip_list_to_data(ip_list):
     return json.dumps({"list" : new_list})
 
 def blacklist(block, ip_list):
+    data = ip_list_to_data(ip_list)
         #block
     if block:
-        data = ip_list_to_data(ip_list)
         response = requests.put('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=creds.headers, data=data, verify=False)
         error_list = response.json()["error_list"]
         return error_list
     #unblock
-    data = ip_list_to_data(ip_list)
     response = requests.delete('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=creds.headers, data=data, verify=False)
     error_list = response.json()["error_list"]
     return error_list
@@ -378,8 +377,7 @@ def show_list(update, context):
     if context.args and len(context.args) == 1 and context.args[0] in available_args:
         #with args
         if context.args[0].lower() in ['sw', 'raw']:
-            list_to_show = requests.get(creds.SW_blacklist_url, headers=creds.headers, verify=False).json()['list']
-            list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
+            list_to_show = get_SW_list()
         else:
             for ip, ban_date, unban_date, banned_forever, name in data:
                 banned_forever = bool(int(banned_forever))
@@ -405,7 +403,8 @@ def show_list(update, context):
         return
     output = tabulate(list_to_show, headers=list_headers)
     if context.args and context.args[0].lower() in ['sw', 'raw']:
-        output = '\n'.join(list_to_show)
+        output = 'Количество заблокированных адресов: {}, лимит: 500 адресов, до лимита можно заблокировать еще {} адресов.\n'.format(len(list_to_show), 500-len(list_to_show))
+        output += '\n'.join(list_to_show)
     if len(list_to_show) > message_lenght:
         send_filename = "{}blocklist_{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
         with open(send_filename, 'w') as out_file:
