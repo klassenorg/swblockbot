@@ -360,35 +360,36 @@ def msglen(update, context):
 def show_list(update, context):
     available_args = ['all', 'forever', 'sw', 'raw']
     conn, c = initdb()
-    data = c.execute("SELECT IP, \
- strftime('%d.%m.', BAN_DATE) || substr(strftime('%Y', BAN_DATE),3, 2) || strftime(' %H:%M', BAN_DATE), \
-  strftime('%d.%m.', UNBAN_DATE) || substr(strftime('%Y', UNBAN_DATE),3, 2) || strftime(' %H:%M', UNBAN_DATE), \
-   BANNED_FOREVER, \
-    BANNED_BY FROM BANS \
-        ORDER BY UNBAN_DATE ASC").fetchall()
     list_to_show = []
     list_headers=['IP or CIDR', 'FROM', 'UNTIL', 'Banned by']
-    for ip, ban_date, unban_date, banned_forever, name in data:
-        banned_forever = bool(int(banned_forever))
-        unban_date = 'Forever' if banned_forever else unban_date
     if context.args and len(context.args) == 1 and context.args[0] in available_args:
         #with args
-        if context.args[0].lower() == 'all':
-            list_to_show.append([ip, ban_date, unban_date, name])
-        if context.args[0].lower() == 'forever':
-            if banned_forever:
-                list_to_show.append([ip, ban_date, unban_date, name])
         if context.args[0].lower() in ['sw', 'raw']:
             list_to_show = requests.get(creds.SW_blacklist_url, headers=creds.headers, verify=False).json()['list']
             list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
-    elif not context.args:
-        #timed
-        if not banned_forever:
-            list_to_show.append([ip, ban_date, unban_date, name])
-    else:
-        #bad
-        updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент {}, введите команду без аргументов для того чтобы получить список банов по времени, либо используйте допустимые аргументы: all, forever, raw'.format(' '.join(context.args)))
-        return
+        else:
+            data = c.execute("SELECT IP, \
+            strftime('%d.%m.', BAN_DATE) || substr(strftime('%Y', BAN_DATE),3, 2) || strftime(' %H:%M', BAN_DATE), \
+            strftime('%d.%m.', UNBAN_DATE) || substr(strftime('%Y', UNBAN_DATE),3, 2) || strftime(' %H:%M', UNBAN_DATE), \
+            BANNED_FOREVER, \
+            BANNED_BY FROM BANS \
+                ORDER BY UNBAN_DATE ASC").fetchall()
+            for ip, ban_date, unban_date, banned_forever, name in data:
+                banned_forever = bool(int(banned_forever))
+                unban_date = 'Forever' if banned_forever else unban_date
+                if context.args[0].lower() == 'all':
+                    list_to_show.append([ip, ban_date, unban_date, name])
+                if context.args[0].lower() == 'forever':
+                    if banned_forever:
+                        list_to_show.append([ip, ban_date, unban_date, name])
+                if not context.args:
+                    #timed
+                    if not banned_forever:
+                        list_to_show.append([ip, ban_date, unban_date, name])
+                else:
+                    #bad
+                    updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент {}, введите команду без аргументов для того чтобы получить список банов по времени, либо используйте допустимые аргументы: all, forever, raw'.format(' '.join(context.args)))
+                    return
     logger.info(list_to_show)
     if not list_to_show:
         updater.bot.send_message(update.effective_chat.id, 'Данный список пуст.')
