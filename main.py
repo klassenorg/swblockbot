@@ -395,8 +395,10 @@ def show_list(update, context):
                     return
     if not context.args:
         #timed
-        if not banned_forever:
-            list_to_show.append([ip, ban_date, unban_date, name])
+        for ip, ban_date, unban_date, banned_forever, name in data:
+            banned_forever = bool(int(banned_forever))
+            if not banned_forever:
+                list_to_show.append([ip, ban_date, unban_date, name])
     logger.info(list_to_show)
     if not list_to_show:
         updater.bot.send_message(update.effective_chat.id, 'Данный список пуст.')
