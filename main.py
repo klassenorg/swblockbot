@@ -376,7 +376,7 @@ def show_list(update, context):
                 if banned_forever:
                     list_to_show.append([ip, ban_date, unban_date, name])
             if context.args[0].lower() in ['sw', 'raw']:
-                list_to_show = requests.get('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers).json()["list"] #TODO
+                list_to_show = requests.get(creds.SW_blacklist_url, headers=headers, verify=False).json()['list']
                 list_headers=['IP or CIDR(Data form StormWall list, contains all blocked ips, not only from L2)']
         elif not context.args:
             #timed
