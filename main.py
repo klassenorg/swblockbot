@@ -22,6 +22,9 @@ import help_txt
 import cx_Oracle
 import LogHandler
 import socket
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def whois_api(ip):
