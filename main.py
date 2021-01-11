@@ -240,12 +240,12 @@ def blacklist(block, ip_list):
         data = ip_list_to_data(ip_list)
         response = requests.put('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
         error_list = response.json()["error_list"]
-        return error_list["error_list"]
+        return error_list
     #unblock
     data = ip_list_to_data(ip_list)
     response = requests.delete('https://api.stormwall.pro/user/service/{}/domain/{}/ddos/black-cidr-list'.format(creds.SW_service_id, creds.SW_domain_id), headers=headers, data=data, verify=False)
     error_list = response.json()["error_list"]
-    return error_list["error_list"]
+    return error_list
 
 
 def checkArgs(args):
@@ -389,6 +389,7 @@ def show_list(update, context):
             #bad
             updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент {}, введите команду без аргументов для того чтобы получить список банов по времени, либо используйте допустимые аргументы: all, forever, raw'.format(' '.join(context.args)))
             return
+    logger.info(list_to_show)
     if not list_to_show:
         updater.bot.send_message(update.effective_chat.id, 'Данный список пуст.')
         return
