@@ -393,7 +393,7 @@ def show_list(update, context):
                     #bad
                     updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент {}, введите команду без аргументов для того чтобы получить список банов по времени, либо используйте допустимые аргументы: all, forever, raw'.format(' '.join(context.args)))
                     return
-    if not context.args:
+    elif not context.args:
         #timed
         for ip, ban_date, unban_date, banned_forever, name in data:
             banned_forever = bool(int(banned_forever))
@@ -404,7 +404,7 @@ def show_list(update, context):
         updater.bot.send_message(update.effective_chat.id, 'Данный список пуст.')
         return
     output = tabulate(list_to_show, headers=list_headers)
-    if context.args[0].lower() in ['sw', 'raw']:
+    if context.args and context.args[0].lower() in ['sw', 'raw']:
         output = '\n'.join(list_to_show)
     if len(list_to_show) > message_lenght:
         send_filename = "{}blocklist_{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
