@@ -410,6 +410,7 @@ def show_list(update, context):
         with open(send_filename, 'w') as out_file:
             out_file.write(output.strip("\n"))
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])
     else:
         updater.bot.send_message(update.effective_chat.id, '```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
     
@@ -426,7 +427,7 @@ def checkAndUnban(context):
         if unban_list: 
             response = blacklist(False, unban_list)
             conn.commit()
-            updater.bot.send_message(creds.L2_chat_id, 'Разблокированы по истечении времени бана:\n{}'.format('\n'.join(unban_list)))
+            updater.bot.send_message(creds.L2_chat_id, '{}Разблокированы по истечении времени бана:\n{}'.format(response+'\n' if response else '', '\n'.join(unban_list)))
             logger.info()
 
 
@@ -564,7 +565,15 @@ def top_ip(update, context):
         tabulate_list.append([ip, count, avg_rt, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
     logger.info('top_ip\n' + output)
-    updater.bot.send_message(update.effective_chat.id, 'TOP {} IP FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    if len(output) > 4000:
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} IP FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        send_filename = "{}top_ip{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        with open(send_filename, 'w') as out_file:
+            out_file.write(output.strip("\n"))
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])    
+    
 
 @refresh_accesslogs
 def top_guest_id(update, context):
@@ -583,7 +592,14 @@ def top_guest_id(update, context):
         output += "\n"
     output = output[:-1]
     logger.info('top_guest_id\n' + output)
-    updater.bot.send_message(update.effective_chat.id, 'TOP {} MVID GUEST ID FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    if len(output) > 4000:
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} MVID GUEST ID FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        send_filename = "{}top_guest{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        with open(send_filename, 'w') as out_file:
+            out_file.write(output.strip("\n"))
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])
 
 
 @refresh_accesslogs
@@ -607,7 +623,15 @@ def top_ps5(update, context):
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
     logger.info('top_ps5\n' + output)
-    updater.bot.send_message(update.effective_chat.id, 'TOP {} PS5 FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    if len(output) > 4000:
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} PS5 FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        send_filename = "{}top_ps5{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        with open(send_filename, 'w') as out_file:
+            out_file.write(output.strip("\n"))
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])
+
 
 
 @refresh_accesslogs
@@ -631,8 +655,14 @@ def top_auth(update, context):
         tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
     logger.info('top_auth\n' + output)
-    updater.bot.send_message(update.effective_chat.id, 'TOP {} AUTH(OTP AND CREDS) FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
-
+    if len(output) > 4000:
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} AUTH(OTP AND CREDS) FOR LAST 10 MINUTES:\n```\n{}```'.format(top, output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        send_filename = "{}top_auth{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        with open(send_filename, 'w') as out_file:
+            out_file.write(output.strip("\n"))
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])
 
 @refresh_accesslogs
 def top_cookie(update, context):
@@ -652,7 +682,14 @@ def top_cookie(update, context):
             output += "\n"
         output = output[:-1]
         logger.info('top_cookie\n' + output)
-        updater.bot.send_message(update.effective_chat.id, 'TOP {} {} FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0].split('=', 1)[0], output), parse_mode=ParseMode.MARKDOWN)
+        if len(output) > 4000:
+            updater.bot.send_message(update.effective_chat.id, 'TOP {} {} FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0].split('=', 1)[0], output), parse_mode=ParseMode.MARKDOWN)
+        else:
+            send_filename = "{}top_cookie{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+            with open(send_filename, 'w') as out_file:
+                out_file.write(output.strip("\n"))
+            context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+            subprocess.call(['rm', send_filename])
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_cookie regexp(в формате cookie=value)')
         return
@@ -676,7 +713,14 @@ def top_url(update, context):
                 tabulate_list.append([ip, count, region, org])
             output = tabulate(tabulate_list, headers=tabulate_headers)
             logger.info('top_url\n' + output)
-            updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URL FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
+            if len(output) > 4000:
+                updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URL FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
+            else:
+                send_filename = "{}top_guest{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+                with open(send_filename, 'w') as out_file:
+                    out_file.write(output.strip("\n"))
+                context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+                subprocess.call(['rm', send_filename])
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_url regexp')
 
