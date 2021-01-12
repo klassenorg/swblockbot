@@ -743,7 +743,7 @@ ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         data['org'],
         data['isp'])
         if verify_search_engine_bot(data['org'], ip):
-            output += '\nДанный ip пренадлежит верифицированному поисковому боту, пройдена проверка на reverse DNS lookup.'
+            output += '\nДанный ip принадлежит верифицированному поисковому боту, пройдена проверка на reverse DNS lookup.'
         logger.info("{} whois requested by id {}, name: {}".format(ip, update.effective_user.id, update.message.from_user.full_name))
         connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
         cursor = connection.cursor()
