@@ -23,6 +23,7 @@ import cx_Oracle
 import LogHandler
 import socket
 import urllib3
+import zipfile
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -445,6 +446,9 @@ def grep_ip(update, context):
         ips = context.args[0].split('|')
     else:
         ips = [context.args[0]]
+    if len(ips) > 3:
+        zip_file_name = "{}grep_data_{}.zip".format(creds.ip_files_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        zip_object = zipfile.ZipFile(zip_file_name, 'a')
     for ip in ips:
         if len(context.args) == 2:
             if context.args[1].lower() != 'short':
@@ -456,10 +460,17 @@ def grep_ip(update, context):
                 subprocess.call(['sh', creds.grep_path, ip])
         send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
         if not os.stat(send_filename).st_size in [352, 396]:
-            context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+            if len(ips) < 4:
+                context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+            else:
+                zip_object.write(send_filename)
         else: 
-            updater.bot.send_message(update.effective_chat.id, 'Данных нет.')
+            updater.bot.send_message(update.effective_chat.id, 'По ip {} данных нет.'.format(ip))
         subprocess.call(['rm', send_filename])
+    if len(ips) > 3:
+        zip_object.close()
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(zip_file_name, 'rb'))
+        subprocess.call(['rm', zip_file_name])
 
 
 def verify_search_engine_bot(org, ip):
@@ -753,20 +764,6 @@ ISP: {}'''.format(data['query'], flag.flag(data['countryCode']),
         updater.bot.send_message(update.effective_chat.id, output)
         #updater.bot.send_location(latitude=data['latitude'], longitude=data['longitude'], chat_id=update.effective_chat.id)
         
-@restricted
-def check(update, context):
-    global check_active
-    if not context.args or len(context.args) != 1 or context.args[0] not in ['on', 'off']:
-        updater.bot.send_message(update.effective_chat.id, 'Допустимые аргументы on и off')
-        return
-    if context.args[0] == 'off':
-        check_active = False
-        logger.info("Ban check disabled by id {}, name: {}".format(update.effective_user.id, update.message.from_user.full_name))
-        updater.bot.send_message(update.effective_chat.id, 'Автоматическое удаление из блок-листа по истечению времени блокировки отключено.')
-    elif context.args[0] == 'on':
-        check_active = True 
-        logger.info("Ban check enabled by id {}, name: {}".format(update.effective_user.id, update.message.from_user.full_name))
-        updater.bot.send_message(update.effective_chat.id, 'Автоматическое удаление из блок-листа по истечению времени блокировки включено каждые 5 минут.')
 
 
 
@@ -801,7 +798,6 @@ def main():
     dp.add_handler(CommandHandler("unban", unban))
     dp.add_handler(CommandHandler("timeban", timeban))
     dp.add_handler(CommandHandler("list", show_list))
-    dp.add_handler(CommandHandler("check", check))
     dp.add_handler(CommandHandler("whois", whois))
     dp.add_handler(CommandHandler("grep", grep_ip))
     dp.add_handler(CommandHandler("msglen", msglen))
