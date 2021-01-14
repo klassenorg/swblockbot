@@ -463,7 +463,7 @@ def grep_ip(update, context):
             if len(ips) < 4:
                 context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
             else:
-                zip_object.write(send_filename)
+                zip_object.write(send_filename, os.path.basename(send_filename))
         else: 
             updater.bot.send_message(update.effective_chat.id, 'По ip {} данных нет.'.format(ip))
         subprocess.call(['rm', send_filename])
