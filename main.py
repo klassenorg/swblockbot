@@ -469,7 +469,10 @@ def grep_ip(update, context):
         subprocess.call(['rm', send_filename])
     if len(ips) > 3:
         zip_object.close()
-        context.bot.send_document(chat_id=update.effective_chat.id, document=open(zip_file_name, 'rb'))
+        try:
+            context.bot.send_document(chat_id=update.effective_chat.id, document=open(zip_file_name, 'rb'))
+        except Exception as e:
+            updater.bot.send_message(update.effective_chat.id, e)
         subprocess.call(['rm', zip_file_name])
 
 
