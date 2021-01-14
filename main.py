@@ -822,7 +822,7 @@ def main():
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
     updater.job_queue.run_repeating(find_bots, interval=7200, first=0)
 
-    dp.add_error_handler(error_handler)
+    #dp.add_error_handler(error_handler)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
