@@ -449,6 +449,7 @@ def grep_ip(update, context):
     if len(ips) > 3:
         zip_file_name = "{}grep_data_{}.zip".format(creds.ip_files_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
         zip_object = zipfile.ZipFile(zip_file_name, 'a')
+        msg = context.bot.send_message(chat_id=update.effective_chat.id, text="Файлов больше трех, идет сбор архива, ожидайте.")
     for ip in ips:
         if len(context.args) == 2:
             if context.args[1].lower() != 'short':
@@ -469,6 +470,7 @@ def grep_ip(update, context):
         subprocess.call(['rm', send_filename])
     if len(ips) > 3:
         zip_object.close()
+        context.bot.delete_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
         try:
             context.bot.send_document(chat_id=update.effective_chat.id, document=open(zip_file_name, 'rb'))
         except Exception as e:
