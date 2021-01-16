@@ -732,7 +732,7 @@ def top_url(update, context):
             if len(output) < 4000:
                 updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN URL FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
             else:
-                send_filename = "{}top_guest{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+                send_filename = "{}top_url{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
                 with open(send_filename, 'w') as out_file:
                     out_file.write(output.strip("\n"))
                 context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
@@ -740,7 +740,34 @@ def top_url(update, context):
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_url regexp')
 
-
+@refresh_accesslogs
+def top_status_code(update, context):
+    if context.args and len(context.args) == 1:
+            tabulate_list = []
+            tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+            top_list = log_handler.get_top_by_status_code(code_re=context.args[0], top=10)
+            for ip in top_list:
+                count = len(top_list[ip])
+                whois = whois_api(ip)
+                if whois['status'] == 'success':
+                    region = flag.flag(whois['countryCode']) + whois['countryCode']
+                    org = whois['org']
+                else: 
+                    region = '\U0001F3F4' + 'ZZ'
+                    org = 'Unknown'
+                tabulate_list.append([ip, count, region, org])
+            output = tabulate(tabulate_list, headers=tabulate_headers)
+            logger.info('top_code\n' + output)
+            if len(output) < 4000:
+                updater.bot.send_message(update.effective_chat.id, 'TOP {} IP CONTAINS {} IN STATUS CODE FOR LAST 10 MINUTES:\n```\n{}```'.format(10, context.args[0], output), parse_mode=ParseMode.MARKDOWN)
+            else:
+                send_filename = "{}top_code{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+                with open(send_filename, 'w') as out_file:
+                    out_file.write(output.strip("\n"))
+                context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+                subprocess.call(['rm', send_filename])
+    else:
+        updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_code regexp')
 
 
 @run_async

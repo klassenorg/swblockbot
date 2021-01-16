@@ -67,3 +67,21 @@ class LogHandler(object):
             top_list[ip] = ip_rt[ip]
         return top_list
 
+    def get_top_by_status_code(self, code_re, top=10):
+        content = self.__get_lines_from_log()
+        ip_code = defaultdict(list)
+        for line in content:
+            try:
+                ip = line.split(' ', 1)[0]
+                if ip[:3] != '10.':
+                    code = line.split('"')[2].split(' ')[1]
+                    if re.match(code_re, code):
+                        ip_code[ip].append(code)
+            except:
+                continue
+        top_list = OrderedDict()
+        for ip in sorted(ip_code, key=lambda ip: len(ip_code[ip]), reverse=True):
+            if len(top_list) >= top:
+                break
+            top_list[ip] = ip_code[ip]
+        return top_list
