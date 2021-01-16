@@ -839,6 +839,7 @@ def main():
     dp.add_handler(CommandHandler("top_auth", top_auth))
     dp.add_handler(CommandHandler("top_ps5", top_ps5))
     dp.add_handler(CommandHandler("top_url", top_url))
+    dp.add_handler(CommandHandler("top_code", top_status_code))
     dp.add_handler(CommandHandler("only_ip", get_ip_from_text))
     dp.add_handler(CommandHandler("force_refresh", force_refresh))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
