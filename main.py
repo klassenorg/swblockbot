@@ -506,44 +506,66 @@ def get_ip_from_text(update, context):
     else:
         updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
 
+find_bots_enabled = True
+
+@restricted
+def find_bots_switch(update, context):
+    global find_bots_enabled
+    if context.args and len(context.args) == 1 and context.args[0].lower() in ['on', 'off', 'status']:
+        arg = context.args[0].lower()
+        if arg == 'on':
+            find_bots_enabled = True
+            updater.bot.send_message(update.effective_chat.id, 'Поиск ботов активирован.')
+        elif arg == 'off':
+            find_bots_enabled = True
+            updater.bot.send_message(update.effective_chat.id, 'Поиск ботов деактивирован.')
+        else:
+            if find_bots_enabled:
+                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов активирован.')
+            else: 
+                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов дективирован.')
+    else:
+        updater.bot.send_message(update.effective_chat.id, 'Некорректный аругмент, допустимые аргументы: on/off/status')
 
 def find_bots(context):
-    global last_refresh
-    if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
-        logger.info("Access log refresh started")
-        msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
-        subprocess.call(['rm', creds.accesslogpath])
-        subprocess.call(['sh', creds.get_access_log_path])
-        context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
-        logger.info("Access log refresh done")
-        last_refresh = datetime.datetime.now()
-    tabulate_list = []
-    tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
-    top_list = log_handler.get_top_by_requests_count(top=20)
-    connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
-    cursor = connection.cursor()
-    for ip in top_list:
-        count = len(top_list[ip])
-        if count < 600: 
-            break
-        query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
-        result = int(cursor.execute(query).fetchone()[0])
-        if result > 0:
-            continue
-        avg_rt = int(sum(top_list[ip])/count*1000)
-        whois = whois_api(ip)
-        if whois['status'] == 'success':
-            region = flag.flag(whois['countryCode']) + whois['countryCode']
-            org = whois['org']
-            if verify_search_engine_bot(org, ip):
+    global find_bots_enabled
+    if find_bots_enabled:
+        global last_refresh
+        if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
+            logger.info("Access log refresh started")
+            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
+            subprocess.call(['rm', creds.accesslogpath])
+            subprocess.call(['sh', creds.get_access_log_path])
+            context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
+            logger.info("Access log refresh done")
+            last_refresh = datetime.datetime.now()
+        tabulate_list = []
+        tabulate_headers = ['IP', 'COUNT', 'Avg.RT ms', 'REG', 'ORG']
+        top_list = log_handler.get_top_by_requests_count(top=20)
+        connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
+        cursor = connection.cursor()
+        for ip in top_list:
+            count = len(top_list[ip])
+            if count < 600: 
+                break
+            query = '''select count(1) from prod_production.mvid_sap_order mso where ip_user = '{}' and CREATION_DATETIME >= SYSDATE - 1'''.format(ip)
+            result = int(cursor.execute(query).fetchone()[0])
+            if result > 0:
                 continue
-        else: 
-            region = '\U0001F3F4' + 'ZZ'
-            org = 'Unknown'
-        tabulate_list.append([ip, count, avg_rt, region, org])
-    if tabulate_list:
-        output = tabulate(tabulate_list, headers=tabulate_headers)
-        updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние 24 часа):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
+            avg_rt = int(sum(top_list[ip])/count*1000)
+            whois = whois_api(ip)
+            if whois['status'] == 'success':
+                region = flag.flag(whois['countryCode']) + whois['countryCode']
+                org = whois['org']
+                if verify_search_engine_bot(org, ip):
+                    continue
+            else: 
+                region = '\U0001F3F4' + 'ZZ'
+                org = 'Unknown'
+            tabulate_list.append([ip, count, avg_rt, region, org])
+        if tabulate_list:
+            output = tabulate(tabulate_list, headers=tabulate_headers)
+            updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние 24 часа):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
 
 @restricted
@@ -842,6 +864,7 @@ def main():
     dp.add_handler(CommandHandler("top_code", top_status_code))
     dp.add_handler(CommandHandler("only_ip", get_ip_from_text))
     dp.add_handler(CommandHandler("force_refresh", force_refresh))
+    dp.add_handler(CommandHandler("find_bots", find_bots_switch))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
