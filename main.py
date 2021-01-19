@@ -517,7 +517,7 @@ def find_bots_switch(update, context):
             find_bots_enabled = True
             updater.bot.send_message(update.effective_chat.id, 'Поиск ботов активирован.')
         elif arg == 'off':
-            find_bots_enabled = True
+            find_bots_enabled = False
             updater.bot.send_message(update.effective_chat.id, 'Поиск ботов деактивирован.')
         else:
             if find_bots_enabled:
