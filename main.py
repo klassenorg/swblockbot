@@ -29,6 +29,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def whois_api(ip):
+    data = {}
     try:
         data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
     except:
