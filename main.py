@@ -29,11 +29,17 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def whois_api(ip):
-    data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
+    try:
+        data = requests.get('http://ip-api.com/json/{}?fields=status,countryCode,region,city,isp,org,query'.format(ip)).json()
+    except:
+        data["status"] = "fail"
     if data["status"] == "fail":
-        data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,org,isp&lang=ru'.format(ip)).json()
+        try:
+            data = requests.get('http://ipwhois.app/json/{}?objects=ip,success,country_code,region,city,org,isp&lang=ru'.format(ip)).json()
+        except:
+            data["status"] = "fail"
         if not data["success"]:
-            data["status"] == "fail"
+            data["status"] = "fail"
             return data
         data["status"] = "success"
         data["countryCode"] = data["country_code"]
@@ -523,7 +529,7 @@ def find_bots_switch(update, context):
             if find_bots_enabled:
                 updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов активирован.')
             else: 
-                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов дективирован.')
+                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов деактивирован.')
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аругмент, допустимые аргументы: on/off/status')
 
