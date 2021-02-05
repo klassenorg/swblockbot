@@ -443,29 +443,24 @@ def checkAndUnban(context):
 @refresh_accesslogs
 @run_async
 def grep_ip(update, context):
-    if not context.args or len(context.args) not in [1, 2]:
-        updater.bot.send_message(update.effective_chat.id, 'Неверные аргументы')
+    short = False
+    if not context.args:
+        updater.bot.send_message(update.effective_chat.id, 'Необходимо ввести данные для поиска')
         return
-    if 'xargs' in ' '.join(context.args).lower():
-        updater.bot.send_message(update.effective_chat.id, 'Хватит хулиганить!!')
-        return
-    if '|' in context.args[0]:
-        ips = context.args[0].split('|')
     else:
-        ips = [context.args[0]]
+        if 'short' in context.args:
+            context.args.remove('short')
+            short = True
+    ips = context.args
     if len(ips) > 3:
         zip_file_name = "{}grep_data_{}.zip".format(creds.ip_files_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
         zip_object = zipfile.ZipFile(zip_file_name, 'a')
         msg = context.bot.send_message(chat_id=update.effective_chat.id, text="Файлов больше трех, идет сбор архива, ожидайте.")
     for ip in ips:
-        if len(context.args) == 2:
-            if context.args[1].lower() != 'short':
-                updater.bot.send_message(update.effective_chat.id, 'Второй аргумент может быть только short, для полного вывода необходимо ввести только ip')
-                return
-            else: 
-                subprocess.call(['sh', creds.grep_path_short, ip])
+        if short:
+            subprocess.call(['sh', creds.grep_path_short, ip])
         else:
-                subprocess.call(['sh', creds.grep_path, ip])
+            subprocess.call(['sh', creds.grep_path, ip])
         send_filename = "{}{}.txt".format(creds.ip_files_path, ip)
         if not os.stat(send_filename).st_size in [352, 396]:
             if len(ips) < 4:
