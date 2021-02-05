@@ -622,8 +622,9 @@ def top_fakebot(update, context):
     conn, c = initdb()
     if context.args and len(context.args) == 1:
         try:
-            all_bots = log_handler.get_top_by_ua(cookie_re=context.args[0])
-        except:
+            all_bots = log_handler.get_top_by_ua(ua_re=context.args[0])
+        except Exception as e:
+            logger.info('top_fakebot exeption\n' + e)
             updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_fakebot regexp(любой кусок юзерагента, например Googlebot)')
             return
     tabulate_list = []
