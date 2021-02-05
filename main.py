@@ -511,7 +511,7 @@ def get_ip_from_text(update, context):
     else:
         updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
 
-find_bots_enabled = True
+find_bots_enabled = False
 
 @restricted
 def find_bots_switch(update, context):
