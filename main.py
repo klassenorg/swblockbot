@@ -634,6 +634,8 @@ def top_fakebot(update, context):
             del all_bots[ip]
             continue
     for ip in all_bots:
+        if len(all_bots[ip]) < 5:
+            continue
         whois = whois_api(ip)
         if whois['status'] == 'success':
             region = flag.flag(whois['countryCode']) + whois['countryCode']
@@ -648,8 +650,7 @@ def top_fakebot(update, context):
             continue
         else:
             count = len(all_bots[ip])
-            if count > 1:
-                tabulate_list.append([ip, count, region, org])
+            tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
     logger.info('top_fakebots\n' + output)
     if len(output) < 4000:
