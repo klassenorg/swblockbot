@@ -644,7 +644,7 @@ def top_fakebot(update, context):
             org = 'Unknown'
         if verify_search_engine_bot(whois['org'], ip):
             if '.'.join(ip.split('.')[:3]) not in c.execute("SELECT IP FROM LEGAL_BOTS_IP").fetchall():
-                c.execute("INSERT INTO LEGAL_BOTS_IP (ip) VALUES(?)",('.'.join(ip.split('.')[:3])))
+                c.execute("INSERT INTO LEGAL_BOTS_IP (ip) VALUES(?,)",('.'.join(ip.split('.')[:3])))
                 conn.commit()
             continue
         else:
