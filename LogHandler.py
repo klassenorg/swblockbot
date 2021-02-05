@@ -94,7 +94,7 @@ class LogHandler(object):
                 ip = line.split(' ', 1)[0]
                 if ip[:3] != '10.':
                     ua = line.split('"')[5]
-                    if re.match(ua_re, ua):
+                    if re.findall(ua_re, ua):
                         ip_ua[ip].append(ua)
             except:
                 continue
