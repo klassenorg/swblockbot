@@ -629,7 +629,7 @@ def top_fakebot(update, context):
             return
     tabulate_list = []
     tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
-    good_bots = c.execute("SELECT IP FROM LEGAL_BOTS_IP").fetchall()
+    good_bots = [i[0] for i in c.execute('SELECT IP FROM LEGAL_BOTS_IP').fetchall()]
     for ip in all_bots.copy(): #check for legal bots that in base already
         if '.'.join(ip.split('.')[:3]) in good_bots:
             del all_bots[ip]
@@ -643,8 +643,8 @@ def top_fakebot(update, context):
             region = '\U0001F3F4' + 'ZZ'
             org = 'Unknown'
         if verify_search_engine_bot(whois['org'], ip):
-            if '.'.join(ip.split('.')[:3]) not in c.execute("SELECT IP FROM LEGAL_BOTS_IP").fetchall():
-                c.execute("INSERT INTO LEGAL_BOTS_IP (ip) VALUES(?,)",('.'.join(ip.split('.')[:3])))
+            if '.'.join(ip.split('.')[:3]) not in [i[0] for i in c.execute('SELECT IP FROM LEGAL_BOTS_IP').fetchall()]:
+                c.execute("INSERT INTO LEGAL_BOTS_IP VALUES(?)",['.'.join(ip.split('.')[:3])])
                 conn.commit()
             continue
         else:
