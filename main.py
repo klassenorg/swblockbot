@@ -111,6 +111,9 @@ def prepareDB():
     c.execute('''CREATE TABLE IF NOT EXISTS WHITELIST
             (IP text NOT NULL, WL_DATE timestamp NOT NULL, WL_BY text)''')
 
+    c.execute('''CREATE TABLE IF NOT EXISTS LEGAL_BOTS_IP
+            (IP text NOT NULL)''')
+
 
 
 logging.basicConfig(filename=creds.logdir,
@@ -614,6 +617,48 @@ def top_ip(update, context):
         context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
         subprocess.call(['rm', send_filename])    
     
+@refresh_accesslogs
+def top_fakebot(update, context):
+    conn, c = initdb()
+    if context.args and len(context.args) == 1:
+        try:
+            all_bots = log_handler.get_top_by_ua(cookie_re=context.args[0])
+        except:
+            updater.bot.send_message(update.effective_chat.id, 'Некорректный аргумент, корректное использование: /top_fakebot regexp(любой кусок юзерагента, например Googlebot)')
+            return
+    tabulate_list = []
+    tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+    good_bots = c.execute("SELECT IP FROM LEGAL_BOTS_IP").fetchall()
+    for ip in all_bots.copy(): #check for legal bots that in base already
+        if '.'.join(ip.split('.')[:3]) in good_bots:
+            del all_bots[ip]
+            continue
+    for ip in all_bots:
+        whois = whois_api(ip)
+        if whois['status'] == 'success':
+            region = flag.flag(whois['countryCode']) + whois['countryCode']
+            org = whois['org']
+        else: 
+            region = '\U0001F3F4' + 'ZZ'
+            org = 'Unknown'
+        if verify_search_engine_bot(whois['org'], ip):
+            if not '.'.join(ip.split('.')[:3]) in c.execute("SELECT IP FROM LEGAL_BOTS_IP").fetchall():
+                c.execute("INSERT INTO LEGAL_BOTS_IP (ip) VALUES(?)",('.'.join(ip.split('.')[:3])))
+                conn.commit()
+            continue
+        else:
+            count = len(all_bots[ip])
+            tabulate_list.append([ip, count, region, org])
+    output = tabulate(tabulate_list, headers=tabulate_headers)
+    logger.info('top_fakebots\n' + output)
+    if len(output) < 4000:
+        updater.bot.send_message(update.effective_chat.id, 'TOP {} FAKE BOTS FOR LAST 10 MINUTES:\n```\n{}```'.format(len(tabulate_list), output), parse_mode=ParseMode.MARKDOWN)
+    else:
+        send_filename = "{}top_fakebots{}.txt".format(creds.tmp_path, datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
+        with open(send_filename, 'w') as out_file:
+            out_file.write(output.strip("\n"))
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(send_filename, 'rb'))
+        subprocess.call(['rm', send_filename])    
 
 @refresh_accesslogs
 def top_guest_id(update, context):

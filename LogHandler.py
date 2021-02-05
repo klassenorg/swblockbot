@@ -85,3 +85,21 @@ class LogHandler(object):
                 break
             top_list[ip] = ip_code[ip]
         return top_list
+    
+    def get_top_by_ua(self, ua_re):
+        content = self.__get_lines_from_log()
+        ip_ua = defaultdict(list)
+        for line in content:
+            try:
+                ip = line.split(' ', 1)[0]
+                if ip[:3] != '10.':
+                    ua = line.split('"')[5]
+                    if re.match(ua_re, ua):
+                        ip_ua[ip].append(ua)
+            except:
+                continue
+        top_list = OrderedDict()
+        for ip in sorted(ip_ua, key=lambda ip: len(ip_ua[ip]), reverse=True):
+            top_list[ip] = ip_ua[ip]
+        return top_list
+        
