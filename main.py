@@ -648,7 +648,8 @@ def top_fakebot(update, context):
             continue
         else:
             count = len(all_bots[ip])
-            tabulate_list.append([ip, count, region, org])
+            if count > 1:
+                tabulate_list.append([ip, count, region, org])
     output = tabulate(tabulate_list, headers=tabulate_headers)
     logger.info('top_fakebots\n' + output)
     if len(output) < 4000:
