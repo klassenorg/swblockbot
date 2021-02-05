@@ -439,7 +439,6 @@ def checkAndUnban(context):
             response = blacklist(False, unban_list)
             conn.commit()
             updater.bot.send_message(creds.L2_chat_id, '{}Разблокированы по истечении времени бана:\n{}'.format(response+'\n' if response else '', '\n'.join(unban_list)))
-            logger.info()
 
 
 
