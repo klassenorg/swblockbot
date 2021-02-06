@@ -483,8 +483,8 @@ def grep_ip(update, context):
 
 
 def verify_search_engine_bot(org, ip):
-    org_list = ['google', 'yandex', 'microsoft', 'apple']
-    host_list = ['googlebot.com', 'google.com', 'yandex.ru', 'yandex.net', 'yandex.com', 'search.msn.com', 'applebot.apple.com']
+    org_list = ['google', 'yandex', 'microsoft', 'apple', 'mail']
+    host_list = ['googlebot.com', 'google.com', 'yandex.ru', 'yandex.net', 'yandex.com', 'search.msn.com', 'applebot.apple.com', 'mail.ru']
     if any(good_org in org.lower() for good_org in org_list):
         try:
             reversed_dns = socket.gethostbyaddr(ip)[0]
@@ -511,6 +511,53 @@ def get_ip_from_text(update, context):
         updater.bot.send_message(update.effective_chat.id, 'В данном тексте нет ip')
 
 find_bots_enabled = False
+find_bot_orders_creator_enabled = True
+
+
+@restricted
+def find_bot_orders_creator_switch(update, context):
+    global find_bot_orders_creator_enabled
+    if context.args and len(context.args) == 1 and context.args[0].lower() in ['on', 'off', 'status']:
+        arg = context.args[0].lower()
+        if arg == 'on':
+            find_bot_orders_creator_enabled = True
+            updater.bot.send_message(update.effective_chat.id, 'Поиск ботов активирован.')
+        elif arg == 'off':
+            find_bot_orders_creator_enabled = False
+            updater.bot.send_message(update.effective_chat.id, 'Поиск ботов деактивирован.')
+        else:
+            if find_bot_orders_creator_enabled:
+                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов активирован.')
+            else: 
+                updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов деактивирован.')
+    else:
+        updater.bot.send_message(update.effective_chat.id, 'Некорректный аругмент, допустимые аргументы: on/off/status')
+
+def find_bot_orders_creator(context):
+    global find_bot_orders_creator_enabled
+    if find_bot_orders_creator_enabled:
+        tabulate_list = []
+        tabulate_headers = ['IP', 'COUNT', 'REG', 'ORG']
+        connection = cx_Oracle.connect(creds.db_auth[0], creds.db_auth[1], creds.db_auth[2])
+        cursor = connection.cursor()
+        query = '''SELECT CNT, IP FROM(SELECT COUNT(*) AS CNT, IP_USER AS IP FROM PROD_PRODUCTION.MVID_SAP_ORDER WHERE CREATION_DATETIME > SYSDATE - INTERVAL '1' HOUR GROUP BY IP_USER ORDER BY 1 DESC) WHERE ROWNUM <= 10'''
+        result = cursor.execute(query).fetchall()
+        for row in result:
+            count = int(row[0])
+            if count > 50:
+                ip = row[1]
+                whois = whois_api(ip)
+                if whois['status'] == 'success':
+                    region = flag.flag(whois['countryCode']) + whois['countryCode']
+                    org = whois['org']
+                else:
+                    region = '\U0001F3F4' + 'ZZ'
+                    org = 'Unknown'
+                tabulate_list.append([ip, count, region, org])
+        if tabulate_list:
+            output = tabulate(tabulate_list, headers=tabulate_headers)
+            updater.bot.send_message(creds.L2_chat_id, 'Кто-то создает заказы как сумасшедший, более 50 заказов за последний час с одного ip, проверь:\n```\n{}```Ну или выключи проверки если срабатывания ложные и они мешают: /find_bots_orders off'.format(output), parse_mode=ParseMode.MARKDOWN)
+
 
 @restricted
 def find_bots_switch(update, context):
@@ -530,6 +577,7 @@ def find_bots_switch(update, context):
                 updater.bot.send_message(update.effective_chat.id, 'В данный момент поиск ботов деактивирован.')
     else:
         updater.bot.send_message(update.effective_chat.id, 'Некорректный аругмент, допустимые аргументы: on/off/status')
+
 
 def find_bots(context):
     global find_bots_enabled
@@ -893,6 +941,7 @@ def main():
     prepareDB()
     updater.job_queue.run_repeating(checkAndUnban, interval=300, first=0)
     updater.job_queue.run_repeating(find_bots, interval=7200, first=0)
+    updater.job_queue.run_repeating(find_bot_orders_creator, interval=3600, first=0)
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("help", help))
@@ -915,6 +964,7 @@ def main():
     dp.add_handler(CommandHandler("only_ip", get_ip_from_text))
     dp.add_handler(CommandHandler("force_refresh", force_refresh))
     dp.add_handler(CommandHandler("find_bots", find_bots_switch))
+    dp.add_handler(CommandHandler("find_bots_orders", find_bot_orders_creator_switch))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
