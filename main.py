@@ -556,7 +556,7 @@ def find_bot_orders_creator(context):
                 tabulate_list.append([ip, count, region, org])
         if tabulate_list:
             output = tabulate(tabulate_list, headers=tabulate_headers)
-            updater.bot.send_message(creds.L2_chat_id, 'Кто-то создает заказы как сумасшедший, более 50 заказов за последний час с одного ip, проверь:\n```\n{}```Ну или выключи проверки если срабатывания ложные и они мешают: /find_bots_orders off'.format(output), parse_mode=ParseMode.MARKDOWN)
+            updater.bot.send_message(creds.L2_chat_id, 'Кто-то создает заказы как сумасшедший, более 50 заказов за последний час с одного ip, проверь:\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
 
 @restricted
