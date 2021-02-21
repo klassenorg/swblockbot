@@ -643,7 +643,7 @@ def srv(update, context):
     
 srv_env = "prod"
 
-def env(update, context):
+def ch_env(update, context):
     global srv_env
     if not context.args:
         context.bot.send_message(chat_id=creds.L2_chat_id, text="Окружение: " + srv_env)
@@ -1002,6 +1002,8 @@ def main():
     dp.add_handler(CommandHandler("find_bots", find_bots_switch))
     dp.add_handler(CommandHandler("find_bots_orders", find_bot_orders_creator_switch))
     dp.add_handler(CommandHandler("srv", srv))
+    dp.add_handler(CommandHandler("env", ch_env))
+
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
