@@ -426,6 +426,10 @@ def show_list(update, context):
     
 
 def checkAndUnban(context):
+    if srv_list != "1-22" and datetime.datetime.now() - srv_time >= datetime.timedelta(minutes=10):
+        global srv_list
+        srv_list = "1-22"
+        updater.bot.send_message(creds.L2_chat_id, 'Список серверов возвращен на 1-22')
     if check_active: 
         unban_list = []
         conn, c = initdb()
@@ -625,6 +629,8 @@ def srv(update, context):
     if context.args and len(context.args) == 1:
         srv_list = context.args[0]
         context.bot.send_message(chat_id=creds.L2_chat_id, text="Список серверов успешно изменен")
+        global srv_time
+        srv_time = datetime.datetime.now()
     else:
         context.bot.send_message(chat_id=creds.L2_chat_id, text="Не удалось изменить список серверов, пожалуйста, используйте формат 1,2-7,17 без пробелов.")
     
