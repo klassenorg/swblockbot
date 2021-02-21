@@ -58,7 +58,6 @@ def refresh_accesslogs(func):
         if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
             logger.info("Access log refresh started")
             msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: "+ srv_list)
-            subprocess.call(['rm', creds.accesslogpath])
             subprocess.call([creds.get_access_log_path, srv_list])
             logger.info("Access log refresh done")
             context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
@@ -635,7 +634,6 @@ def force_refresh(update, context):
     global last_refresh
     logger.info("Access log refresh started")
     msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: " + srv_list)
-    subprocess.call(['rm', creds.accesslogpath])
     subprocess.call([creds.get_access_log_path, srv_list])
     context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.\nСписок серверов: ' + srv_list)
     logger.info("Access log refresh done")
