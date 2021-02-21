@@ -626,6 +626,9 @@ srv_list = "1-22"
 
 def srv(update, context):
     global srv_list
+    if not context.args:
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Список серверов: " + srv_list)
+        return
     if context.args and len(context.args) == 1:
         srv_list = context.args[0]
         context.bot.send_message(chat_id=creds.L2_chat_id, text="Список серверов успешно изменен")
