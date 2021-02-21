@@ -57,9 +57,9 @@ def refresh_accesslogs(func):
         global last_refresh
         if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
             logger.info("Access log refresh started")
-            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
+            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: "+ srv_list)
             subprocess.call(['rm', creds.accesslogpath])
-            subprocess.call(['sh', creds.get_access_log_path])
+            subprocess.call([creds.get_access_log_path, srv_list])
             logger.info("Access log refresh done")
             context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
             last_refresh = datetime.datetime.now()
@@ -619,15 +619,25 @@ def find_bots(context):
             output = tabulate(tabulate_list, headers=tabulate_headers)
             updater.bot.send_message(creds.L2_chat_id, 'Вероятные боты(более 600 запросов за 10 минут, 0 заказов за последние 24 часа):\n```\n{}```'.format(output), parse_mode=ParseMode.MARKDOWN)
 
+srv_list = "1-22"
+
+def srv(update, context):
+    global srv_list
+    if context.args and len(context.args) == 1:
+        srv_list = context.args[0]
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Список серверов успешно изменен")
+    else:
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Не удалось изменить список серверов, пожалуйста, используйте формат 1,2-7,17 без пробелов.")
+    
 
 @restricted
 def force_refresh(update, context):
     global last_refresh
     logger.info("Access log refresh started")
-    msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.")
+    msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: " + srv_list)
     subprocess.call(['rm', creds.accesslogpath])
-    subprocess.call(['sh', creds.get_access_log_path])
-    context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.')
+    subprocess.call([creds.get_access_log_path, srv_list])
+    context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.\nСписок серверов: ' + srv_list)
     logger.info("Access log refresh done")
     last_refresh = datetime.datetime.now()
 
@@ -965,6 +975,7 @@ def main():
     dp.add_handler(CommandHandler("force_refresh", force_refresh))
     dp.add_handler(CommandHandler("find_bots", find_bots_switch))
     dp.add_handler(CommandHandler("find_bots_orders", find_bot_orders_creator_switch))
+    dp.add_handler(CommandHandler("srv", srv))
     dp.add_handler(CallbackQueryHandler(accept_auth, pattern='^1$'))
     dp.add_handler(CallbackQueryHandler(decline_auth, pattern='^0$'))
     auth_handler = ConversationHandler(
