@@ -57,8 +57,8 @@ def refresh_accesslogs(func):
         global last_refresh
         if datetime.datetime.now() - last_refresh >= datetime.timedelta(minutes=10):
             logger.info("Access log refresh started")
-            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: "+ srv_list)
-            subprocess.call([creds.get_access_log_path, srv_list])
+            msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: "+ srv_list + "\nОкружение: " + srv_env)
+            subprocess.call([creds.get_access_log_path, srv_list, srv_env])
             logger.info("Access log refresh done")
             context.bot.delete_message(chat_id=creds.L2_chat_id, message_id=msg.message_id)
             last_refresh = datetime.datetime.now()
@@ -430,6 +430,10 @@ def checkAndUnban(context):
         global srv_list
         srv_list = "1-22"
         updater.bot.send_message(creds.L2_chat_id, 'Список серверов возвращен на 1-22')
+    if srv_env != "prod" and datetime.datetime.now() - env_time >= datetime.timedelta(minutes=10):
+        global srv_env
+        srv_env = "prod"
+        updater.bot.send_message(creds.L2_chat_id, 'Окружение возвращено на prod')
     if check_active: 
         unban_list = []
         conn, c = initdb()
@@ -637,14 +641,29 @@ def srv(update, context):
     else:
         context.bot.send_message(chat_id=creds.L2_chat_id, text="Не удалось изменить список серверов, пожалуйста, используйте формат 1,2-7,17 без пробелов.")
     
+srv_env = "prod"
+
+def env(update, context):
+    global srv_env
+    if not context.args:
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Окружение: " + srv_env)
+        return
+    if context.args and len(context.args) == 1 and context.args[0].lower() in ["prod", "pilot"]:
+        srv_env = context.args[0].lower()
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Окружение успешно изменено")
+        global env_time
+        env_time = datetime.datetime.now()
+    else:
+        context.bot.send_message(chat_id=creds.L2_chat_id, text="Не удалось изменить окружене, используйте формат prod или pilot")
+    
 
 @restricted
 def force_refresh(update, context):
     global last_refresh
     logger.info("Access log refresh started")
-    msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: " + srv_list)
-    subprocess.call([creds.get_access_log_path, srv_list])
-    context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.\nСписок серверов: ' + srv_list)
+    msg = context.bot.send_message(chat_id=creds.L2_chat_id, text="Идёт сбор access логов, пожалуйста, ожидайте.\nСписок серверов: " + srv_list + "\nОкружение: " + srv_env)
+    subprocess.call([creds.get_access_log_path, srv_list, srv_env])
+    context.bot.edit_message_text(chat_id=creds.L2_chat_id, message_id=msg.message_id, text='Обновление access логов завершено.\nСписок серверов: ' + srv_list + "\nОкружение: " + srv_env)
     logger.info("Access log refresh done")
     last_refresh = datetime.datetime.now()
 
